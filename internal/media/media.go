@@ -14,7 +14,15 @@ import (
 
 func Init() {
 	api.HandleFunc("api/media", apiMedia)
+	api.HandleFunc("api/media/count", apiMediaCount)
 	api.HandleFunc("api/media/", apiMediaAction)
+}
+
+func apiMediaCount(w http.ResponseWriter, r *http.Request) {
+	var movies, series int
+	db.Conn().QueryRow(`SELECT COUNT(*) FROM media WHERE type = 'movie'`).Scan(&movies)
+	db.Conn().QueryRow(`SELECT COUNT(*) FROM media WHERE type = 'series'`).Scan(&series)
+	api.Response(w, map[string]int{"movies": movies, "series": series, "total": movies + series})
 }
 
 type Media struct {
