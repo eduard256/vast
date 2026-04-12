@@ -1,0 +1,209 @@
+package download
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/eduard256/vast/internal/api"
+	"github.com/eduard256/vast/pkg/db"
+	"github.com/eduard256/vast/pkg/hls"
+	"github.com/eduard256/vast/pkg/torrent"
+)
+
+var dataDir string
+
+func Init() {
+	dataDir = os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "."
+	}
+
+	if err := torrent.Init(dataDir); err != nil {
+		log.Printf("[download] torrent init error: %v", err)
+		return
+	}
+
+	api.HandleFunc("api/download", apiDownload)
+	api.HandleFunc("api/downloads", apiDownloads)
+	api.HandleFunc("api/downloads/", apiDownloadAction)
+}
+
+func apiDownload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		api.Error(w, errors.New("method not allowed"), http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		PosterURL   string `json:"poster_url"`
+		Magnet      string `json:"magnet"`
+		Type        string `json:"type"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		api.Error(w, err, http.StatusBadRequest)
+		return
+	}
+
+	if req.Magnet == "" || req.Title == "" {
+		api.Error(w, errors.New("title and magnet required"), http.StatusBadRequest)
+		return
+	}
+
+	if req.Type == "" {
+		req.Type = "movie"
+	}
+
+	result, err := db.Conn().Exec(
+		`INSERT INTO media (title, description, poster_url, type, status, magnet) VALUES (?, ?, ?, ?, 'downloading', ?)`,
+		req.Title, req.Description, req.PosterURL, req.Type, req.Magnet,
+	)
+	if err != nil {
+		api.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	mediaID64, _ := result.LastInsertId()
+	mediaID := int(mediaID64)
+
+	go func() {
+		t, err := torrent.Add(req.Magnet)
+		if err != nil {
+			log.Printf("[download] torrent add error: %v", err)
+			db.Conn().Exec(`UPDATE media SET status = 'error' WHERE id = ?`, mediaID)
+			return
+		}
+
+		hash := t.InfoHash().HexString()
+		db.Conn().Exec(`UPDATE media SET torrent_hash = ? WHERE id = ?`, hash, mediaID)
+		torrent.Track(hash, mediaID, t)
+
+		go waitComplete(hash, mediaID)
+	}()
+
+	api.Response(w, map[string]any{"status": "ok", "id": mediaID})
+}
+
+func apiDownloads(w http.ResponseWriter, r *http.Request) {
+	downloads := torrent.List()
+
+	// enrich with transcode status
+	type DownloadStatus struct {
+		torrent.Progress
+		TranscodePercent *float64 `json:"transcode_percent"`
+	}
+
+	var out []DownloadStatus
+	for _, dl := range downloads {
+		ds := DownloadStatus{Progress: dl}
+		if dl.Status == "transcoding" {
+			if job := hls.GetJob(dl.ID); job != nil {
+				p := job.Percent
+				ds.TranscodePercent = &p
+			}
+		}
+		out = append(out, ds)
+	}
+
+	if out == nil {
+		api.Response(w, []DownloadStatus{})
+		return
+	}
+	api.Response(w, out)
+}
+
+func apiDownloadAction(w http.ResponseWriter, r *http.Request) {
+	hash := strings.TrimPrefix(r.URL.Path, "/api/downloads/")
+	if hash == "" {
+		api.Error(w, errors.New("hash required"), http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+	case "DELETE":
+		dl := torrent.Get(hash)
+		if dl == nil {
+			api.Error(w, errors.New("not found"), http.StatusNotFound)
+			return
+		}
+		db.Conn().Exec(`DELETE FROM media WHERE id = ?`, dl.ID)
+		torrent.Remove(hash)
+		api.Response(w, map[string]string{"status": "ok"})
+	default:
+		api.Error(w, errors.New("method not allowed"), http.StatusMethodNotAllowed)
+	}
+}
+
+func waitComplete(hash string, mediaID int) {
+	dl := torrent.Get(hash)
+	if dl == nil || dl.T == nil {
+		return
+	}
+
+	<-dl.T.Complete().On()
+
+	log.Printf("[download] completed: %s", dl.T.Name())
+
+	// find downloaded file
+	inputFile := findVideoFile(filepath.Join(dataDir, "downloads", dl.T.InfoHash().HexString()))
+	if inputFile == "" {
+		// single file torrent
+		inputFile = filepath.Join(dataDir, "downloads", dl.T.InfoHash().HexString(), dl.T.Name())
+	}
+
+	db.Conn().Exec(`UPDATE media SET status = 'transcoding', file_path = ? WHERE id = ?`, inputFile, mediaID)
+	torrent.SetStatus(hash, "transcoding")
+
+	log.Printf("[download] transcoding: %s", inputFile)
+
+	outDir := hls.HLSDir(dataDir, mediaID)
+	hls.Start(mediaID, inputFile, outDir, func(err error) {
+		if err != nil {
+			log.Printf("[download] transcode error: %v", err)
+			db.Conn().Exec(`UPDATE media SET status = 'error' WHERE id = ?`, mediaID)
+			torrent.SetStatus(hash, "error")
+			return
+		}
+
+		hlsPath := hls.PlaylistPath(dataDir, mediaID)
+		log.Printf("[download] transcode done: %s", hlsPath)
+		db.Conn().Exec(`UPDATE media SET status = 'ready', hls_path = ? WHERE id = ?`, hlsPath, mediaID)
+		torrent.SetStatus(hash, "ready")
+	})
+}
+
+func findVideoFile(dir string) string {
+	exts := []string{".mkv", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".webm", ".ts"}
+	var best string
+	var bestSize int64
+
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		ext := strings.ToLower(filepath.Ext(path))
+		for _, e := range exts {
+			if ext == e && info.Size() > bestSize {
+				best = path
+				bestSize = info.Size()
+				break
+			}
+		}
+		return nil
+	})
+
+	return best
+}
+
+// StreamURL returns the HLS stream URL for a media
+func StreamURL(mediaID int) string {
+	return fmt.Sprintf("/stream/%d/master.m3u8", mediaID)
+}
