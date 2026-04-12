@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -12,10 +14,47 @@ import (
 	"github.com/eduard256/vast/pkg/db"
 )
 
+var dataDir string
+
 func Init() {
+	dataDir = os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "."
+	}
+
 	api.HandleFunc("api/media", apiMedia)
 	api.HandleFunc("api/media/count", apiMediaCount)
 	api.HandleFunc("api/media/", apiMediaAction)
+	api.HandleFunc("stream/", apiStream)
+}
+
+// serves /stream/{id}/master.m3u8 and /stream/{id}/seg_0001.ts
+func apiStream(w http.ResponseWriter, r *http.Request) {
+	// path: stream/{id}/filename
+	path := strings.TrimPrefix(r.URL.Path, "/stream/")
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) != 2 {
+		http.NotFound(w, r)
+		return
+	}
+
+	id, err := strconv.Atoi(parts[0])
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	filename := parts[1]
+	filePath := filepath.Join(dataDir, "hls", strconv.Itoa(id), filename)
+
+	if strings.HasSuffix(filename, ".m3u8") {
+		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	} else if strings.HasSuffix(filename, ".ts") {
+		w.Header().Set("Content-Type", "video/mp2t")
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	http.ServeFile(w, r, filePath)
 }
 
 func apiMediaCount(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +89,7 @@ type Episode struct {
 
 type WatchPosition struct {
 	MediaID     int     `json:"media_id"`
-	EpisodeID   *int    `json:"episode_id"`
+	EpisodeID   int     `json:"episode_id"`
 	PositionSec float64 `json:"position_sec"`
 	DurationSec float64 `json:"duration_sec"`
 }
@@ -209,18 +248,14 @@ func apiPosition(w http.ResponseWriter, r *http.Request, mediaID int) {
 	switch r.Method {
 	case "GET":
 		episodeID := r.URL.Query().Get("episode_id")
-		var pos WatchPosition
-		var err error
+		epID := 0
 		if episodeID != "" {
-			epID, _ := strconv.Atoi(episodeID)
-			err = db.Conn().QueryRow(
-				`SELECT media_id, episode_id, position_sec, duration_sec FROM watch_position WHERE media_id = ? AND episode_id = ?`, mediaID, epID,
-			).Scan(&pos.MediaID, &pos.EpisodeID, &pos.PositionSec, &pos.DurationSec)
-		} else {
-			err = db.Conn().QueryRow(
-				`SELECT media_id, episode_id, position_sec, duration_sec FROM watch_position WHERE media_id = ? AND episode_id IS NULL`, mediaID,
-			).Scan(&pos.MediaID, &pos.EpisodeID, &pos.PositionSec, &pos.DurationSec)
+			epID, _ = strconv.Atoi(episodeID)
 		}
+		var pos WatchPosition
+		err := db.Conn().QueryRow(
+			`SELECT media_id, episode_id, position_sec, duration_sec FROM watch_position WHERE media_id = ? AND episode_id = ?`, mediaID, epID,
+		).Scan(&pos.MediaID, &pos.EpisodeID, &pos.PositionSec, &pos.DurationSec)
 		if err == sql.ErrNoRows {
 			api.Response(w, WatchPosition{MediaID: mediaID, PositionSec: 0, DurationSec: 0})
 			return
@@ -229,7 +264,7 @@ func apiPosition(w http.ResponseWriter, r *http.Request, mediaID int) {
 
 	case "POST":
 		var req struct {
-			EpisodeID   *int    `json:"episode_id"`
+			EpisodeID   int     `json:"episode_id"`
 			PositionSec float64 `json:"position_sec"`
 			DurationSec float64 `json:"duration_sec"`
 		}

@@ -53,7 +53,7 @@ func Init() {
 
 	conn.Exec(`CREATE TABLE IF NOT EXISTS watch_position (
 		media_id INTEGER NOT NULL,
-		episode_id INTEGER,
+		episode_id INTEGER NOT NULL DEFAULT 0,
 		position_sec REAL NOT NULL DEFAULT 0,
 		duration_sec REAL NOT NULL DEFAULT 0,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAST Player</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: monospace; background: #000; color: #fff; }
+nav { padding: 10px 20px; background: #111; }
+nav a { margin-right: 12px; color: #aaa; text-decoration: none; }
+nav a:hover { color: #fff; }
+#player-wrap { width: 100%; max-width: 1200px; margin: 0 auto; }
+video { width: 100%; background: #000; }
+#info { padding: 12px 20px; }
+#title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+#desc { font-size: 12px; color: #888; }
+#resume-bar { display: none; padding: 12px 20px; background: #222; text-align: center; }
+#resume-bar button { padding: 8px 16px; margin: 0 8px; cursor: pointer; font-family: monospace; font-size: 13px; background: #333; color: #fff; border: 1px solid #555; }
+#resume-bar button:hover { background: #444; }
+#error { padding: 20px; color: #f44; text-align: center; display: none; }
+</style>
+</head>
+<body>
+
+<nav><a href="/">Chat</a> <a href="/library.html">Library</a> <a href="/downloads.html">Downloads</a></nav>
+<div id="error"></div>
+<div id="resume-bar">
+  <span id="resume-text"></span>
+  <button id="btn-resume">Continue</button>
+  <button id="btn-restart">Start over</button>
+</div>
+<div id="player-wrap">
+  <video id="video" controls></video>
+</div>
+<div id="info">
+  <div id="title"></div>
+  <div id="desc"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+const API = 'http://10.0.1.100:8990';
+const params = new URLSearchParams(location.search);
+const mediaId = params.get('id');
+const episodeId = params.get('episode');
+
+const video = document.getElementById('video');
+const titleEl = document.getElementById('title');
+const descEl = document.getElementById('desc');
+const errorEl = document.getElementById('error');
+const resumeBar = document.getElementById('resume-bar');
+const resumeText = document.getElementById('resume-text');
+
+let savedPosition = 0;
+let saveTimer = null;
+
+if (!mediaId) {
+  showError('No media id');
+} else {
+  init();
+}
+
+async function init() {
+  // load media info
+  try {
+    const r = await fetch(API + '/api/media/' + mediaId);
+    const m = await r.json();
+
+    if (m.error) { showError(m.error); return; }
+
+    titleEl.textContent = m.title + (m.year ? ' (' + m.year + ')' : '');
+    descEl.textContent = m.description || '';
+
+    if (m.status !== 'ready') {
+      showError('Not ready yet: ' + m.status);
+      return;
+    }
+
+    // load HLS stream
+    const streamUrl = API + '/stream/' + mediaId + '/master.m3u8';
+    loadVideo(streamUrl);
+
+    // check saved position
+    const posUrl = API + '/api/media/' + mediaId + '/position' + (episodeId ? '?episode_id=' + episodeId : '');
+    const pr = await fetch(posUrl);
+    const pos = await pr.json();
+
+    if (pos.position_sec > 10) {
+      savedPosition = pos.position_sec;
+      resumeText.textContent = 'Continue from ' + formatTime(savedPosition) + '?';
+      resumeBar.style.display = 'block';
+    }
+  } catch(e) {
+    showError('Failed to load: ' + e.message);
+  }
+}
+
+function loadVideo(url) {
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(video);
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+  } else {
+    showError('HLS not supported');
+  }
+}
+
+document.getElementById('btn-resume').addEventListener('click', function() {
+  video.currentTime = savedPosition;
+  video.play();
+  resumeBar.style.display = 'none';
+  startSaving();
+});
+
+document.getElementById('btn-restart').addEventListener('click', function() {
+  video.currentTime = 0;
+  video.play();
+  resumeBar.style.display = 'none';
+  startSaving();
+});
+
+video.addEventListener('play', function() {
+  resumeBar.style.display = 'none';
+  startSaving();
+});
+
+video.addEventListener('pause', function() { savePosition(); });
+video.addEventListener('ended', function() { savePosition(); });
+
+function startSaving() {
+  if (saveTimer) return;
+  saveTimer = setInterval(savePosition, 5000);
+}
+
+function savePosition() {
+  if (!video.currentTime || !video.duration) return;
+
+  const body = {
+    position_sec: video.currentTime,
+    duration_sec: video.duration
+  };
+  if (episodeId) body.episode_id = parseInt(episodeId);
+
+  fetch(API + '/api/media/' + mediaId + '/position', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+}
+
+function formatTime(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = 'block';
+}
+</script>
+</body>
+</html>
