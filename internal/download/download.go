@@ -44,6 +44,8 @@ func apiDownload(w http.ResponseWriter, r *http.Request) {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		PosterURL   string `json:"poster_url"`
+		Year        int    `json:"year,omitempty"`
+		TmdbID      string `json:"tmdb_id,omitempty"`
 		Magnet      string `json:"magnet"`
 		Type        string `json:"type"`
 	}
@@ -63,8 +65,8 @@ func apiDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := db.Conn().Exec(
-		`INSERT INTO media (title, description, poster_url, type, status, magnet) VALUES (?, ?, ?, ?, 'downloading', ?)`,
-		req.Title, req.Description, req.PosterURL, req.Type, req.Magnet,
+		`INSERT INTO media (title, description, poster_url, year, tmdb_id, type, status, magnet) VALUES (?, ?, ?, ?, ?, ?, 'downloading', ?)`,
+		req.Title, req.Description, req.PosterURL, req.Year, req.TmdbID, req.Type, req.Magnet,
 	)
 	if err != nil {
 		api.Error(w, err, http.StatusInternalServerError)
