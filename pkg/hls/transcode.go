@@ -88,20 +88,15 @@ func run(job *Job) error {
 	duration := probeDuration(job.Input)
 
 	playlist := filepath.Join(job.Output, "master.m3u8")
-	segPattern := filepath.Join(job.Output, "seg_%04d.ts")
+	segPattern := filepath.Join(job.Output, "seg_%04d.m4s")
 
-	// probe codecs to decide copy or transcode
 	videoCodec := probeVideoCodec(job.Input)
-	audioCodec := probeAudioCodec(job.Input)
-
-	// HLS .ts supports h264 and h265, everything else needs transcoding
 	needVideoTranscode := videoCodec != "h264" && videoCodec != "hevc"
 	vaapi := hasVAAPI()
 
 	var args []string
 
 	if needVideoTranscode && vaapi {
-		// hardware-accelerated transcoding via VAAPI
 		args = append(args,
 			"-vaapi_device", "/dev/dri/renderD128",
 			"-i", job.Input,
@@ -109,7 +104,6 @@ func run(job *Job) error {
 			"-c:v", "h264_vaapi", "-qp", "20",
 		)
 	} else if needVideoTranscode {
-		// software fallback
 		args = append(args,
 			"-i", job.Input,
 			"-c:v", "libx264", "-preset", "fast", "-crf", "18",
@@ -121,17 +115,15 @@ func run(job *Job) error {
 		)
 	}
 
-	// audio: copy if already aac or ac3, otherwise transcode
-	switch audioCodec {
-	case "aac", "ac3", "eac3":
-		args = append(args, "-c:a", "copy")
-	default:
-		args = append(args, "-c:a", "aac", "-b:a", "640k")
-	}
+	// fMP4 supports all audio codecs natively -- always copy
+	args = append(args, "-c:a", "copy")
+
 	args = append(args,
-		"-sn", // no subtitles in HLS ts segments
+		"-sn",
+		"-movflags", "+frag_keyframe+empty_moov+default_base_moof",
 		"-hls_time", "6",
 		"-hls_playlist_type", "vod",
+		"-hls_segment_type", "fmp4",
 		"-hls_segment_filename", segPattern,
 		"-progress", "pipe:1",
 		"-y",

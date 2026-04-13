@@ -51,6 +51,10 @@ func apiStream(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	} else if strings.HasSuffix(filename, ".ts") {
 		w.Header().Set("Content-Type", "video/mp2t")
+	} else if strings.HasSuffix(filename, ".m4s") {
+		w.Header().Set("Content-Type", "video/iso.segment")
+	} else if strings.HasSuffix(filename, ".mp4") {
+		w.Header().Set("Content-Type", "video/mp4")
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
