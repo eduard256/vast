@@ -41,13 +41,23 @@ func apiDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		PosterURL   string `json:"poster_url"`
-		Year        int    `json:"year,omitempty"`
-		TmdbID      string `json:"tmdb_id,omitempty"`
-		Magnet      string `json:"magnet"`
-		Type        string `json:"type"`
+		Title          string  `json:"title"`
+		AltName        string  `json:"alt_name"`
+		Description    string  `json:"description"`
+		PosterURL      string  `json:"poster_url"`
+		BackdropURL    string  `json:"backdrop_url"`
+		Year           int     `json:"year"`
+		KinopoiskID    string  `json:"kinopoisk_id"`
+		TmdbID         string  `json:"tmdb_id"`
+		RatingKP       float64 `json:"rating_kp"`
+		RatingIMDB     float64 `json:"rating_imdb"`
+		Genres         string  `json:"genres"`
+		Magnet         string  `json:"magnet"`
+		Type           string  `json:"type"`
+		TorrentTitle   string  `json:"torrent_title"`
+		TorrentSize    string  `json:"torrent_size"`
+		TorrentTracker string  `json:"torrent_tracker"`
+		TorrentSeeders int     `json:"torrent_seeders"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -65,8 +75,12 @@ func apiDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := db.Conn().Exec(
-		`INSERT INTO media (title, description, poster_url, year, tmdb_id, type, status, magnet) VALUES (?, ?, ?, ?, ?, ?, 'downloading', ?)`,
-		req.Title, req.Description, req.PosterURL, req.Year, req.TmdbID, req.Type, req.Magnet,
+		`INSERT INTO media (title, alt_name, description, poster_url, backdrop_url, year, kinopoisk_id, tmdb_id, rating_kp, rating_imdb, genres, type, status, magnet, torrent_title, torrent_size, torrent_tracker, torrent_seeders)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'downloading', ?, ?, ?, ?, ?)`,
+		req.Title, req.AltName, req.Description, req.PosterURL, req.BackdropURL,
+		req.Year, req.KinopoiskID, req.TmdbID, req.RatingKP, req.RatingIMDB,
+		req.Genres, req.Type, req.Magnet,
+		req.TorrentTitle, req.TorrentSize, req.TorrentTracker, req.TorrentSeeders,
 	)
 	if err != nil {
 		api.Error(w, err, http.StatusInternalServerError)

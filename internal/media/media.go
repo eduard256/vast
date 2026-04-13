@@ -69,16 +69,26 @@ func apiMediaCount(w http.ResponseWriter, r *http.Request) {
 }
 
 type Media struct {
-	ID          int     `json:"id"`
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
-	PosterURL   *string `json:"poster_url"`
-	Year        *int    `json:"year"`
-	TmdbID      *string `json:"tmdb_id"`
-	Type        string  `json:"type"`
-	Status      string  `json:"status"`
-	HLSPath     *string `json:"hls_path"`
-	CreatedAt   string  `json:"created_at"`
+	ID             int      `json:"id"`
+	Title          string   `json:"title"`
+	AltName        *string  `json:"alt_name"`
+	Description    *string  `json:"description"`
+	PosterURL      *string  `json:"poster_url"`
+	BackdropURL    *string  `json:"backdrop_url"`
+	Year           *int     `json:"year"`
+	KinopoiskID    *string  `json:"kinopoisk_id"`
+	TmdbID         *string  `json:"tmdb_id"`
+	RatingKP       *float64 `json:"rating_kp"`
+	RatingIMDB     *float64 `json:"rating_imdb"`
+	Genres         *string  `json:"genres"`
+	Type           string   `json:"type"`
+	Status         string   `json:"status"`
+	HLSPath        *string  `json:"hls_path"`
+	TorrentTitle   *string  `json:"torrent_title"`
+	TorrentSize    *string  `json:"torrent_size"`
+	TorrentTracker *string  `json:"torrent_tracker"`
+	TorrentSeeders *int     `json:"torrent_seeders"`
+	CreatedAt      string   `json:"created_at"`
 }
 
 type Episode struct {
@@ -101,7 +111,7 @@ type WatchPosition struct {
 func apiMedia(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		rows, err := db.Conn().Query(`SELECT id, title, description, poster_url, year, tmdb_id, type, status, hls_path, created_at FROM media ORDER BY created_at DESC`)
+		rows, err := db.Conn().Query(`SELECT id, title, alt_name, description, poster_url, backdrop_url, year, kinopoisk_id, tmdb_id, rating_kp, rating_imdb, genres, type, status, hls_path, torrent_title, torrent_size, torrent_tracker, torrent_seeders, created_at FROM media ORDER BY created_at DESC`)
 		if err != nil {
 			api.Error(w, err, http.StatusInternalServerError)
 			return
@@ -111,7 +121,7 @@ func apiMedia(w http.ResponseWriter, r *http.Request) {
 		var list []Media
 		for rows.Next() {
 			var m Media
-			rows.Scan(&m.ID, &m.Title, &m.Description, &m.PosterURL, &m.Year, &m.TmdbID, &m.Type, &m.Status, &m.HLSPath, &m.CreatedAt)
+			rows.Scan(&m.ID, &m.Title, &m.AltName, &m.Description, &m.PosterURL, &m.BackdropURL, &m.Year, &m.KinopoiskID, &m.TmdbID, &m.RatingKP, &m.RatingIMDB, &m.Genres, &m.Type, &m.Status, &m.HLSPath, &m.TorrentTitle, &m.TorrentSize, &m.TorrentTracker, &m.TorrentSeeders, &m.CreatedAt)
 			list = append(list, m)
 		}
 		if list == nil {
@@ -190,8 +200,8 @@ func apiMediaAction(w http.ResponseWriter, r *http.Request) {
 func apiMediaByID(w http.ResponseWriter, r *http.Request, id int) {
 	var m Media
 	err := db.Conn().QueryRow(
-		`SELECT id, title, description, poster_url, year, tmdb_id, type, status, hls_path, created_at FROM media WHERE id = ?`, id,
-	).Scan(&m.ID, &m.Title, &m.Description, &m.PosterURL, &m.Year, &m.TmdbID, &m.Type, &m.Status, &m.HLSPath, &m.CreatedAt)
+		`SELECT id, title, alt_name, description, poster_url, backdrop_url, year, kinopoisk_id, tmdb_id, rating_kp, rating_imdb, genres, type, status, hls_path, torrent_title, torrent_size, torrent_tracker, torrent_seeders, created_at FROM media WHERE id = ?`, id,
+	).Scan(&m.ID, &m.Title, &m.AltName, &m.Description, &m.PosterURL, &m.BackdropURL, &m.Year, &m.KinopoiskID, &m.TmdbID, &m.RatingKP, &m.RatingIMDB, &m.Genres, &m.Type, &m.Status, &m.HLSPath, &m.TorrentTitle, &m.TorrentSize, &m.TorrentTracker, &m.TorrentSeeders, &m.CreatedAt)
 	if err == sql.ErrNoRows {
 		api.Error(w, errors.New("not found"), http.StatusNotFound)
 		return
