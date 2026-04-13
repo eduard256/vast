@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var conn *sql.DB
@@ -18,7 +18,7 @@ func Init() {
 	os.MkdirAll(dataDir, 0755)
 
 	var err error
-	conn, err = sql.Open("sqlite3", filepath.Join(dataDir, "vast.db")+"?_journal_mode=WAL")
+	conn, err = sql.Open("sqlite", filepath.Join(dataDir, "vast.db")+"?_journal_mode=WAL")
 	if err != nil {
 		panic("db: " + err.Error())
 	}
