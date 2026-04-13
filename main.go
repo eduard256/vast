@@ -6,6 +6,7 @@ import (
 	"github.com/eduard256/vast/internal/api"
 	"github.com/eduard256/vast/internal/chat"
 	"github.com/eduard256/vast/internal/download"
+	"github.com/eduard256/vast/internal/kinopoisk"
 	"github.com/eduard256/vast/internal/media"
 	"github.com/eduard256/vast/pkg/db"
 	"github.com/joho/godotenv"
@@ -23,6 +24,7 @@ func main() {
 		{"chat", chat.Init},
 		{"download", download.Init},
 		{"media", media.Init},
+		{"kinopoisk", kinopoisk.Init},
 	}
 
 	for _, m := range modules {
