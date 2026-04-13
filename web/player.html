@@ -115,39 +115,37 @@ async function init() {
 let hlsPlayer = null;
 
 function loadVideo(url) {
-  console.log('[VAST] loadVideo:', url);
-  if (!Hls.isSupported()) {
-    showError('HLS not supported in this browser');
-    return;
-  }
+  if (Hls.isSupported()) {
+    hlsPlayer = new Hls();
+    hlsPlayer.loadSource(url);
+    hlsPlayer.attachMedia(video);
 
-  hlsPlayer = new Hls();
-  hlsPlayer.loadSource(url);
-  hlsPlayer.attachMedia(video);
+    hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+      const tracks = hlsPlayer.audioTracks;
+      if (tracks.length > 1) {
+        const select = document.getElementById('audio-select');
+        document.getElementById('audio-select-wrap').style.display = 'block';
 
-  hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
-    console.error('[VAST] HLS error:', data.type, data.details, data);
-  });
+        for (let i = 0; i < tracks.length; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = tracks[i].name || tracks[i].lang || ('Track ' + (i + 1));
+          select.appendChild(opt);
+        }
 
-  hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-    const tracks = hlsPlayer.audioTracks;
-    if (tracks.length > 1) {
-      const sel = document.getElementById('audio-select');
-      document.getElementById('audio-select-wrap').style.display = 'block';
+        // set current track (default from manifest)
+        select.value = hlsPlayer.audioTrack;
 
-      for (let i = 0; i < tracks.length; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = tracks[i].name || tracks[i].lang || ('Track ' + (i + 1));
-        sel.appendChild(opt);
+        select.addEventListener('change', function() {
+          hlsPlayer.audioTrack = parseInt(this.value);
+        });
       }
-
-      sel.value = hlsPlayer.audioTrack;
-      sel.addEventListener('change', function() {
-        hlsPlayer.audioTrack = parseInt(this.value);
-      });
-    }
-  });
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+  } else {
+    showError('HLS not supported');
+  }
 }
 
 document.getElementById('btn-resume').addEventListener('click', function() {
