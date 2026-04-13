@@ -115,12 +115,22 @@ async function init() {
 let hlsPlayer = null;
 
 function loadVideo(url) {
+  console.log('[VAST] loadVideo:', url);
   if (Hls.isSupported()) {
-    hlsPlayer = new Hls();
+    hlsPlayer = new Hls({debug: true});
     hlsPlayer.loadSource(url);
     hlsPlayer.attachMedia(video);
 
+    hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
+      console.error('[VAST] HLS error:', data.type, data.details, data);
+    });
+
+    hlsPlayer.on(Hls.Events.MANIFEST_LOADED, function(event, data) {
+      console.log('[VAST] Manifest loaded:', data);
+    });
+
     hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+      console.log('[VAST] Manifest parsed, audio tracks:', hlsPlayer.audioTracks);
       const tracks = hlsPlayer.audioTracks;
       if (tracks.length > 1) {
         const select = document.getElementById('audio-select');
