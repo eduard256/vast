@@ -102,43 +102,74 @@ func run(job *Job) error {
 	duration := probeDuration(job.Input)
 	tracks := ProbeAudioTracks(job.Input)
 	videoCodec := probeVideoCodec(job.Input)
-	needVideoTranscode := videoCodec != "h264" && videoCodec != "hevc"
 	vaapi := hasVAAPI()
 
 	if len(tracks) == 0 {
 		tracks = []AudioTrack{{Index: 0, Language: "und", Title: "Audio", Codec: "unknown"}}
 	}
 
-	// build ffmpeg command with separate outputs for video + each audio track
+	// cancel all child processes on job cancel
+	var cmds []*exec.Cmd
+	job.cancel = func() {
+		for _, c := range cmds {
+			if c.Process != nil {
+				c.Process.Kill()
+			}
+		}
+	}
+
+	errs := make(chan error, 1+len(tracks))
+
+	// Step 1. Video -- separate ffmpeg process
+	videoCmd := buildVideoCmd(job.Input, job.Output, videoCodec, vaapi)
+	cmds = append(cmds, videoCmd)
+
+	go func() {
+		errs <- runFFmpeg(videoCmd, job, duration)
+	}()
+
+	// Step 2. Audio -- one ffmpeg per track, all in parallel
+	for i, t := range tracks {
+		cmd := buildAudioCmd(job.Input, job.Output, t, i)
+		cmds = append(cmds, cmd)
+
+		go func() {
+			errs <- runFFmpeg(cmd, nil, 0) // no progress tracking for audio
+		}()
+	}
+
+	// Step 3. Wait for all processes
+	total := 1 + len(tracks)
+	for i := 0; i < total; i++ {
+		if err := <-errs; err != nil {
+			// kill remaining processes
+			job.cancel()
+			return err
+		}
+	}
+
+	return writeMasterPlaylist(job.Output, tracks)
+}
+
+// buildVideoCmd -- ffmpeg for video track only. copy h264, transcode everything else.
+func buildVideoCmd(input, outDir, codec string, vaapi bool) *exec.Cmd {
 	var args []string
 
-	// input and hw accel
-	if needVideoTranscode && vaapi {
+	needTranscode := codec != "h264"
+
+	if needTranscode && vaapi {
 		args = append(args, "-vaapi_device", "/dev/dri/renderD128")
 	}
-	args = append(args, "-i", job.Input)
+	args = append(args, "-i", input)
 
-	// video output
-	videoPlaylist := filepath.Join(job.Output, "video.m3u8")
-	videoSegPattern := filepath.Join(job.Output, "video_%04d.m4s")
-
-	if needVideoTranscode && vaapi {
-		args = append(args,
-			"-map", "0:v:0",
-			"-c:v", "h264_vaapi", "-qp", "20",
-			"-vf", "format=nv12,hwupload",
-		)
-	} else if needVideoTranscode {
-		args = append(args,
-			"-map", "0:v:0",
-			"-c:v", "libx264", "-preset", "fast", "-crf", "18",
-		)
+	if needTranscode && vaapi {
+		args = append(args, "-map", "0:v:0", "-c:v", "h264_vaapi", "-qp", "20", "-vf", "format=nv12,hwupload")
+	} else if needTranscode {
+		args = append(args, "-map", "0:v:0", "-c:v", "libx264", "-preset", "fast", "-crf", "18")
 	} else {
-		args = append(args,
-			"-map", "0:v:0",
-			"-c:v", "copy",
-		)
+		args = append(args, "-map", "0:v:0", "-c:v", "copy")
 	}
+
 	args = append(args,
 		"-an", "-sn",
 		"-movflags", "+frag_keyframe+empty_moov+default_base_moof",
@@ -146,51 +177,41 @@ func run(job *Job) error {
 		"-hls_playlist_type", "vod",
 		"-hls_segment_type", "fmp4",
 		"-hls_fmp4_init_filename", "video_init.mp4",
-		"-hls_segment_filename", videoSegPattern,
-		"-y", videoPlaylist,
+		"-hls_segment_filename", filepath.Join(outDir, "video_%04d.m4s"),
+		"-progress", "pipe:1",
+		"-y", filepath.Join(outDir, "video.m3u8"),
 	)
 
-	// audio outputs -- one per track
-	// codecs that browsers can decode in fMP4 HLS natively
-	browserCodecs := map[string]bool{
-		"aac": true, "ac3": true, "eac3": true,
-		"mp3": true, "opus": true, "vorbis": true,
+	return exec.Command("ffmpeg", args...)
+}
+
+// buildAudioCmd -- ffmpeg for single audio track. copy aac, transcode everything else to aac.
+func buildAudioCmd(input, outDir string, track AudioTrack, idx int) *exec.Cmd {
+	args := []string{"-i", input, "-map", fmt.Sprintf("0:a:%d", track.Index)}
+
+	if track.Codec == "aac" {
+		args = append(args, "-c:a", "copy")
+	} else {
+		args = append(args, "-c:a", "aac", "-b:a", "640k")
 	}
 
-	for i, t := range tracks {
-		audioPlaylist := filepath.Join(job.Output, fmt.Sprintf("audio_%d.m3u8", i))
-		audioSegPattern := filepath.Join(job.Output, fmt.Sprintf("audio_%d_%%04d.m4s", i))
+	args = append(args,
+		"-vn", "-sn",
+		"-movflags", "+frag_keyframe+empty_moov+default_base_moof",
+		"-hls_time", "6",
+		"-hls_playlist_type", "vod",
+		"-hls_segment_type", "fmp4",
+		"-hls_fmp4_init_filename", fmt.Sprintf("audio_%d_init.mp4", idx),
+		"-hls_segment_filename", filepath.Join(outDir, fmt.Sprintf("audio_%d_%%04d.m4s", idx)),
+		"-y", filepath.Join(outDir, fmt.Sprintf("audio_%d.m3u8", idx)),
+	)
 
-		// copy if browser-compatible, otherwise transcode to AAC preserving channels
-		var audioCodecArgs []string
-		if browserCodecs[t.Codec] {
-			audioCodecArgs = []string{"-c:a", "copy"}
-		} else {
-			// DTS, DTS-HD, TrueHD, FLAC, PCM -> AAC
-			audioCodecArgs = []string{"-c:a", "aac", "-b:a", "640k"}
-		}
+	return exec.Command("ffmpeg", args...)
+}
 
-		args = append(args,
-			"-map", fmt.Sprintf("0:a:%d", t.Index),
-		)
-		args = append(args, audioCodecArgs...)
-		args = append(args,
-			"-vn", "-sn",
-			"-movflags", "+frag_keyframe+empty_moov+default_base_moof",
-			"-hls_time", "6",
-			"-hls_playlist_type", "vod",
-			"-hls_segment_type", "fmp4",
-			"-hls_fmp4_init_filename", fmt.Sprintf("audio_%d_init.mp4", i),
-			"-hls_segment_filename", audioSegPattern,
-			"-y", audioPlaylist,
-		)
-	}
-
-	args = append(args, "-progress", "pipe:1")
-
-	cmd := exec.Command("ffmpeg", args...)
-	job.cancel = func() { cmd.Process.Kill() }
-
+// runFFmpeg starts ffmpeg and tracks progress from -progress pipe:1 output.
+// Pass job=nil to skip progress tracking (audio workers).
+func runFFmpeg(cmd *exec.Cmd, job *Job, duration float64) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -204,7 +225,7 @@ func run(job *Job) error {
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if duration > 0 && strings.HasPrefix(line, "out_time=") {
+		if job != nil && duration > 0 && strings.HasPrefix(line, "out_time=") {
 			if secs := parseTime(line[9:]); secs > 0 {
 				mu.Lock()
 				job.Percent = secs / duration * 100
@@ -216,12 +237,7 @@ func run(job *Job) error {
 		}
 	}
 
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-
-	// generate master.m3u8 with EXT-X-MEDIA for audio tracks
-	return writeMasterPlaylist(job.Output, tracks)
+	return cmd.Wait()
 }
 
 func writeMasterPlaylist(outDir string, tracks []AudioTrack) error {
