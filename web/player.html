@@ -19,12 +19,19 @@ video { width: 100%; background: #000; }
 #resume-bar button { padding: 8px 16px; margin: 0 8px; cursor: pointer; font-family: monospace; font-size: 13px; background: #333; color: #fff; border: 1px solid #555; }
 #resume-bar button:hover { background: #444; }
 #error { padding: 20px; color: #f44; text-align: center; display: none; }
+#audio-select-wrap { padding: 8px 20px; background: #111; display: none; }
+#audio-select-wrap label { font-size: 12px; color: #888; margin-right: 8px; }
+#audio-select { padding: 4px 8px; font-family: monospace; font-size: 12px; background: #222; color: #fff; border: 1px solid #444; }
 </style>
 </head>
 <body>
 
 <nav><a href="/library.html">Library</a> <a href="/downloads.html">Downloads</a></nav>
 <div id="error"></div>
+<div id="audio-select-wrap">
+  <label>Audio:</label>
+  <select id="audio-select"></select>
+</div>
 <div id="resume-bar">
   <span id="resume-text"></span>
   <button id="btn-resume">Continue</button>
@@ -69,8 +76,17 @@ async function init() {
 
     if (m.error) { showError(m.error); return; }
 
-    titleEl.textContent = m.title + (m.year ? ' (' + m.year + ')' : '');
-    descEl.textContent = m.description || '';
+    const parts = [m.title];
+    if (m.year) parts[0] += ' (' + m.year + ')';
+    if (m.alt_name) parts[0] += ' / ' + m.alt_name;
+    titleEl.textContent = parts[0];
+
+    const descParts = [];
+    if (m.genres) descParts.push(m.genres);
+    if (m.rating_kp) descParts.push('KP ' + m.rating_kp);
+    if (m.rating_imdb) descParts.push('IMDb ' + m.rating_imdb);
+    if (m.description) descParts.push(m.description);
+    descEl.textContent = descParts.join(' | ');
 
     if (m.status !== 'ready') {
       showError('Not ready yet: ' + m.status);
@@ -96,11 +112,35 @@ async function init() {
   }
 }
 
+let hlsPlayer = null;
+
 function loadVideo(url) {
   if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(video);
+    hlsPlayer = new Hls();
+    hlsPlayer.loadSource(url);
+    hlsPlayer.attachMedia(video);
+
+    hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+      const tracks = hlsPlayer.audioTracks;
+      if (tracks.length > 1) {
+        const select = document.getElementById('audio-select');
+        document.getElementById('audio-select-wrap').style.display = 'block';
+
+        for (let i = 0; i < tracks.length; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = tracks[i].name || tracks[i].lang || ('Track ' + (i + 1));
+          select.appendChild(opt);
+        }
+
+        // set current track (default from manifest)
+        select.value = hlsPlayer.audioTrack;
+
+        select.addEventListener('change', function() {
+          hlsPlayer.audioTrack = parseInt(this.value);
+        });
+      }
+    });
   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
     video.src = url;
   } else {

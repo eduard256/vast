@@ -75,7 +75,7 @@ function render(list) {
   for (const m of list) {
     const card = document.createElement('div');
     card.className = 'card';
-    card.onclick = function() { location.href = '/player.html?id=' + m.id; };
+    card.onclick = function() { location.href = '/movie.html?id=' + m.id; };
 
     const poster = document.createElement('div');
     poster.className = 'card-poster';
@@ -101,7 +101,8 @@ function render(list) {
     info.className = 'card-info';
     const parts = [];
     if (m.year) parts.push(m.year);
-    parts.push(m.type);
+    if (m.rating_kp) parts.push('KP ' + m.rating_kp);
+    if (m.genres) parts.push(m.genres.split(',')[0]);
     info.textContent = parts.join(' | ');
     card.appendChild(info);
 

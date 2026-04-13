@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAST</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #0a0a0c;
+  --surface: #12121a;
+  --border: #2a2a3a;
+  --text: #e8e6e3;
+  --text-dim: #8a8898;
+  --accent: #c4a35a;
+  --accent-glow: #c4a35a44;
+  --kp-orange: #f60;
+  --imdb-yellow: #f5c518;
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --orange: #fb923c;
+  --red: #ef4444;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 16px 32px;
+  background: linear-gradient(to bottom, rgba(10,10,12,0.95) 0%, transparent 100%);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+nav a:hover { color: var(--text); }
+nav .brand { color: var(--accent); font-weight: 700; font-size: 14px; }
+
+.backdrop {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  overflow: hidden;
+}
+.backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  filter: brightness(0.45) saturate(0.6);
+}
+.backdrop-empty {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0a0a14 50%, #16213e 100%);
+}
+.backdrop::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 75%;
+  background: linear-gradient(to top, var(--bg) 0%, var(--bg) 20%, transparent 100%);
+}
+.backdrop::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to right, var(--bg) 0%, transparent 25%, transparent 75%, var(--bg) 100%);
+  z-index: 1;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  max-width: 1100px;
+  margin: -240px auto 0;
+  padding: 0 32px 80px;
+}
+
+.layout {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.poster {
+  flex-shrink: 0;
+  width: 280px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.8), 0 0 0 1px var(--border);
+}
+.poster img { width: 100%; display: block; }
+.poster-empty {
+  width: 100%;
+  aspect-ratio: 2/3;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+}
+
+.info { flex: 1; min-width: 0; }
+
+.title {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.alt-name {
+  font-size: 15px;
+  color: var(--text-dim);
+  font-weight: 300;
+  margin-bottom: 20px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.meta-tag {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 3px;
+}
+.rating-label {
+  font-size: 9px;
+  font-weight: 400;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.rating-kp {
+  background: rgba(255,102,0,0.12);
+  color: var(--kp-orange);
+  border: 1px solid rgba(255,102,0,0.25);
+}
+.rating-imdb {
+  background: rgba(245,197,24,0.1);
+  color: var(--imdb-yellow);
+  border: 1px solid rgba(245,197,24,0.2);
+}
+
+.genres {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.genre {
+  font-size: 10px;
+  color: var(--accent);
+  padding: 4px 12px;
+  border: 1px solid var(--accent-glow);
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+.description {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text-dim);
+  font-weight: 300;
+  margin-bottom: 32px;
+  max-width: 620px;
+}
+
+.status-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+.status-ready { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+.status-downloading { background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+.status-transcoding { background: rgba(251,146,60,0.1); color: var(--orange); border: 1px solid rgba(251,146,60,0.2); }
+.status-error { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status-downloading .status-dot,
+.status-transcoding .status-dot {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.torrent {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+}
+.torrent-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.torrent-name {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  font-weight: 400;
+  margin-bottom: 14px;
+  word-break: break-word;
+}
+.torrent-stats {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.torrent-stat { display: flex; flex-direction: column; gap: 2px; }
+.torrent-stat-key {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.torrent-stat-val { font-size: 14px; font-weight: 600; }
+.torrent-stat-val.sz { color: var(--text); }
+.torrent-stat-val.tr { color: var(--accent); }
+.torrent-stat-val.sd { color: var(--green); }
+
+.play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 48px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a88a3a 100%);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.play-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px var(--accent-glow);
+}
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.error-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--red);
+  font-size: 14px;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.poster { animation: fadeUp 0.6s ease-out 0.1s both; }
+.info > * { animation: fadeUp 0.5s ease-out both; }
+.title { animation-delay: 0.12s; }
+.alt-name { animation-delay: 0.18s; }
+.meta { animation-delay: 0.24s; }
+.genres { animation-delay: 0.3s; }
+.description { animation-delay: 0.36s; }
+.status-block { animation-delay: 0.38s; }
+.torrent { animation: fadeUp 0.5s ease-out 0.42s both; }
+.play-btn { animation: fadeUp 0.5s ease-out 0.48s both; }
+
+@media (max-width: 768px) {
+  .backdrop { height: 320px; }
+  .content { margin-top: -140px; padding: 0 16px 48px; }
+  .layout { flex-direction: column; gap: 24px; }
+  .poster { width: 200px; margin: 0 auto; }
+  .title { font-size: 24px; text-align: center; }
+  .alt-name { text-align: center; }
+  .meta { justify-content: center; }
+  .genres { justify-content: center; }
+  .description { text-align: center; margin: 0 auto 32px; }
+  .status-block { margin: 0 auto 24px; }
+  .play-btn { width: 100%; justify-content: center; }
+  nav { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="brand">VAST</a>
+  <a href="/library.html">Library</a>
+  <a href="/downloads.html">Downloads</a>
+</nav>
+
+<div id="loading" class="loading-screen">Loading...</div>
+<div id="error" class="error-screen" style="display:none"></div>
+
+<div id="page" style="display:none">
+  <div class="backdrop" id="backdrop"></div>
+  <div class="content">
+    <div class="layout">
+      <div class="poster" id="poster"></div>
+      <div class="info">
+        <div class="title" id="title"></div>
+        <div class="alt-name" id="altName"></div>
+        <div class="meta" id="meta"></div>
+        <div class="genres" id="genres"></div>
+        <div class="description" id="description"></div>
+        <div class="status-block" id="statusBlock"></div>
+        <div class="torrent" id="torrent" style="display:none">
+          <div class="torrent-label">Torrent</div>
+          <div class="torrent-name" id="torrentName"></div>
+          <div class="torrent-stats">
+            <div class="torrent-stat">
+              <span class="torrent-stat-key">Size</span>
+              <span class="torrent-stat-val sz" id="torrentSize"></span>
+            </div>
+            <div class="torrent-stat">
+              <span class="torrent-stat-key">Tracker</span>
+              <span class="torrent-stat-val tr" id="torrentTracker"></span>
+            </div>
+            <div class="torrent-stat">
+              <span class="torrent-stat-key">Seeders</span>
+              <span class="torrent-stat-val sd" id="torrentSeeders"></span>
+            </div>
+          </div>
+        </div>
+        <div id="action"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://10.0.1.100:8990';
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+
+if (!id) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'flex';
+  document.getElementById('error').textContent = 'No media ID provided';
+} else {
+  load();
+}
+
+async function load() {
+  try {
+    const r = await fetch(API + '/api/media/' + id);
+    const m = await r.json();
+    if (m.error) throw new Error(m.error);
+    render(m);
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'flex';
+    document.getElementById('error').textContent = e.message;
+  }
+}
+
+function render(m) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('page').style.display = 'block';
+
+  document.title = 'VAST -- ' + m.title;
+
+  // backdrop
+  const bd = document.getElementById('backdrop');
+  if (m.backdrop_url) {
+    const img = document.createElement('img');
+    img.src = m.backdrop_url;
+    bd.appendChild(img);
+  } else {
+    const div = document.createElement('div');
+    div.className = 'backdrop-empty';
+    bd.appendChild(div);
+  }
+
+  // poster
+  const ps = document.getElementById('poster');
+  if (m.poster_url) {
+    const img = document.createElement('img');
+    img.src = m.poster_url;
+    img.alt = m.title;
+    ps.appendChild(img);
+  } else {
+    const div = document.createElement('div');
+    div.className = 'poster-empty';
+    div.textContent = m.title;
+    ps.appendChild(div);
+  }
+
+  // title + alt name
+  document.getElementById('title').textContent = m.title;
+  const altParts = [];
+  if (m.alt_name) altParts.push(m.alt_name);
+  if (m.year) altParts.push(m.year);
+  document.getElementById('altName').textContent = altParts.join(' / ');
+
+  // meta
+  const meta = document.getElementById('meta');
+  if (m.year) {
+    const t = document.createElement('span');
+    t.className = 'meta-tag';
+    t.textContent = m.year;
+    meta.appendChild(t);
+  }
+  if (m.type) {
+    const t = document.createElement('span');
+    t.className = 'meta-tag';
+    t.textContent = m.type;
+    meta.appendChild(t);
+  }
+  if (m.rating_kp) {
+    const r = document.createElement('span');
+    r.className = 'rating rating-kp';
+    const label = document.createElement('span');
+    label.className = 'rating-label';
+    label.textContent = 'KP';
+    r.appendChild(label);
+    r.appendChild(document.createTextNode(' ' + m.rating_kp));
+    meta.appendChild(r);
+  }
+  if (m.rating_imdb) {
+    const r = document.createElement('span');
+    r.className = 'rating rating-imdb';
+    const label = document.createElement('span');
+    label.className = 'rating-label';
+    label.textContent = 'IMDb';
+    r.appendChild(label);
+    r.appendChild(document.createTextNode(' ' + m.rating_imdb));
+    meta.appendChild(r);
+  }
+
+  // genres
+  const ge = document.getElementById('genres');
+  if (m.genres) {
+    m.genres.split(',').forEach(function(g) {
+      const s = document.createElement('span');
+      s.className = 'genre';
+      s.textContent = g.trim();
+      ge.appendChild(s);
+    });
+  }
+
+  // description
+  document.getElementById('description').textContent = m.description || '';
+
+  // status
+  const sb = document.getElementById('statusBlock');
+  sb.className = 'status-block status-' + m.status;
+  const dot = document.createElement('span');
+  dot.className = 'status-dot';
+  sb.appendChild(dot);
+  sb.appendChild(document.createTextNode(' ' + m.status));
+
+  // torrent
+  if (m.torrent_title || m.torrent_size) {
+    document.getElementById('torrent').style.display = 'block';
+    document.getElementById('torrentName').textContent = m.torrent_title || '--';
+    document.getElementById('torrentSize').textContent = m.torrent_size || '--';
+    document.getElementById('torrentTracker').textContent = m.torrent_tracker || '--';
+    document.getElementById('torrentSeeders').textContent = m.torrent_seeders || '--';
+  }
+
+  // action
+  const action = document.getElementById('action');
+  if (m.status === 'ready') {
+    const a = document.createElement('a');
+    a.href = '/player.html?id=' + m.id;
+    a.className = 'play-btn';
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '18');
+    svg.setAttribute('height', '18');
+    svg.style.fill = 'var(--bg)';
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', '5,3 19,12 5,21');
+    svg.appendChild(poly);
+
+    a.appendChild(svg);
+    a.appendChild(document.createTextNode(' Play'));
+    action.appendChild(a);
+  }
+}
+</script>
+</body>
+</html>

@@ -150,8 +150,25 @@ func apiDownloadAction(w http.ResponseWriter, r *http.Request) {
 			api.Error(w, errors.New("not found"), http.StatusNotFound)
 			return
 		}
-		db.Conn().Exec(`DELETE FROM media WHERE id = ?`, dl.ID)
+		mediaID := dl.ID
+
+		// stop transcoding if running
+		hls.Cancel(mediaID)
+
+		// stop torrent
 		torrent.Remove(hash)
+
+		// delete downloaded files
+		os.RemoveAll(filepath.Join(dataDir, "downloads", hash))
+
+		// delete HLS files
+		os.RemoveAll(hls.HLSDir(dataDir, mediaID))
+
+		// delete from database
+		db.Conn().Exec(`DELETE FROM watch_position WHERE media_id = ?`, mediaID)
+		db.Conn().Exec(`DELETE FROM episodes WHERE media_id = ?`, mediaID)
+		db.Conn().Exec(`DELETE FROM media WHERE id = ?`, mediaID)
+
 		api.Response(w, map[string]string{"status": "ok"})
 	default:
 		api.Error(w, errors.New("method not allowed"), http.StatusMethodNotAllowed)
