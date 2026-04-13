@@ -111,10 +111,10 @@ func apiDownload(w http.ResponseWriter, r *http.Request) {
 func apiDownloads(w http.ResponseWriter, r *http.Request) {
 	downloads := torrent.List()
 
-	// enrich with transcode status
 	type DownloadStatus struct {
 		torrent.Progress
-		TranscodePercent *float64 `json:"transcode_percent"`
+		AudioPercent *float64 `json:"audio_percent"`
+		VideoPercent *float64 `json:"video_percent"`
 	}
 
 	var out []DownloadStatus
@@ -122,8 +122,9 @@ func apiDownloads(w http.ResponseWriter, r *http.Request) {
 		ds := DownloadStatus{Progress: dl}
 		if dl.Status == "transcoding" {
 			if job := hls.GetJob(dl.ID); job != nil {
-				p := job.Percent
-				ds.TranscodePercent = &p
+				a, v := job.AudioPercent, job.VideoPercent
+				ds.AudioPercent = &a
+				ds.VideoPercent = &v
 			}
 		}
 		out = append(out, ds)

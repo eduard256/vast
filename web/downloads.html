@@ -86,19 +86,35 @@ function render(list) {
     bar.appendChild(barText);
     div.appendChild(bar);
 
-    if (dl.status === 'transcoding' && dl.transcode_percent) {
-      const tbar = document.createElement('div');
-      tbar.className = 'dl-bar';
-      const tfill = document.createElement('div');
-      tfill.className = 'dl-bar-fill';
-      tfill.style.width = dl.transcode_percent.toFixed(1) + '%';
-      tfill.style.background = '#ff9800';
-      tbar.appendChild(tfill);
-      const ttext = document.createElement('div');
-      ttext.className = 'dl-bar-text';
-      ttext.textContent = 'Transcode: ' + dl.transcode_percent.toFixed(1) + '%';
-      tbar.appendChild(ttext);
-      div.appendChild(tbar);
+    if (dl.status === 'transcoding') {
+      if (dl.audio_percent != null) {
+        const abar = document.createElement('div');
+        abar.className = 'dl-bar';
+        const afill = document.createElement('div');
+        afill.className = 'dl-bar-fill';
+        afill.style.width = dl.audio_percent.toFixed(1) + '%';
+        afill.style.background = '#ff9800';
+        abar.appendChild(afill);
+        const atext = document.createElement('div');
+        atext.className = 'dl-bar-text';
+        atext.textContent = 'Audio: ' + dl.audio_percent.toFixed(1) + '%';
+        abar.appendChild(atext);
+        div.appendChild(abar);
+      }
+      if (dl.video_percent != null) {
+        const vbar = document.createElement('div');
+        vbar.className = 'dl-bar';
+        const vfill = document.createElement('div');
+        vfill.className = 'dl-bar-fill';
+        vfill.style.width = dl.video_percent.toFixed(1) + '%';
+        vfill.style.background = '#2196f3';
+        vbar.appendChild(vfill);
+        const vtext = document.createElement('div');
+        vtext.className = 'dl-bar-text';
+        vtext.textContent = 'Video: ' + dl.video_percent.toFixed(1) + '%';
+        vbar.appendChild(vtext);
+        div.appendChild(vbar);
+      }
     }
 
     const info = document.createElement('div');
