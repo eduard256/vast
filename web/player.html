@@ -319,6 +319,145 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 }
 .loading-spinner.visible { display: block; }
 @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+/* ========== TV MODE ========== */
+body.tv-mode .top-bar { display: none; }
+body.tv-mode .bottom-buttons { display: none; }
+
+body.tv-mode .center-controls {
+  gap: 56px;
+  margin: auto 0;
+}
+body.tv-mode .ctrl-btn {
+  width: 80px;
+  height: 80px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+body.tv-mode .ctrl-btn:hover {
+  background: rgba(255,255,255,0.25);
+  transform: scale(1.08);
+}
+body.tv-mode .ctrl-btn:active {
+  transform: scale(0.95);
+}
+body.tv-mode .ctrl-btn svg {
+  width: 40px;
+  height: 40px;
+}
+body.tv-mode .ctrl-btn.play-pause {
+  width: 96px;
+  height: 96px;
+  background: rgba(255,255,255,0.18);
+}
+body.tv-mode .ctrl-btn.play-pause:hover {
+  background: rgba(255,255,255,0.3);
+}
+body.tv-mode .ctrl-btn.play-pause svg {
+  width: 48px;
+  height: 48px;
+}
+
+body.tv-mode .bottom-bar {
+  padding: 40px 32px calc(24px + var(--safe-bottom));
+}
+body.tv-mode .progress-track {
+  height: 5px;
+}
+body.tv-mode .progress-wrap:hover .progress-track,
+body.tv-mode .progress-wrap.dragging .progress-track {
+  height: 8px;
+}
+body.tv-mode .time-display {
+  font-size: 15px;
+}
+body.tv-mode .progress-thumb {
+  width: 18px;
+  height: 18px;
+}
+
+/* TV mode resume notification (no buttons) */
+.resume-notify {
+  position: absolute;
+  bottom: calc(80px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(20,22,32,0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.resume-notify.visible {
+  opacity: 1;
+}
+
+/* Fullscreen start screen -- shown when fullscreen=1 to get user gesture */
+.start-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.start-screen.visible {
+  display: flex;
+}
+.start-screen__btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+.start-screen__btn:hover,
+.start-screen__btn:focus {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.06);
+  outline: none;
+}
+.start-screen__btn:active {
+  transform: scale(0.95);
+}
+.start-screen__btn svg {
+  width: 56px;
+  height: 56px;
+  fill: #fff;
+  margin-left: 6px;
+}
+.start-screen__title {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  max-width: 80%;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+}
 </style>
 </head>
 <body>
@@ -389,6 +528,17 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     <button class="resume-bar__btn no" id="resumeNo">Сначала</button>
   </div>
 
+  <!-- Fullscreen start screen -->
+  <div class="start-screen" id="startScreen">
+    <div class="start-screen__title" id="startTitle"></div>
+    <button class="start-screen__btn" id="startBtn" autofocus>
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
+
+  <!-- Resume notification (for auto-resume mode) -->
+  <div class="resume-notify" id="resumeNotify"></div>
+
   <!-- Error overlay -->
   <div class="error-overlay" id="errorOverlay">
     <span id="errorText"></span>
@@ -407,6 +557,17 @@ var savedPos = 0;
 var saveTimer = null;
 var controlsTimer = null;
 var isDragging = false;
+
+// URL parameters for TV / auto modes
+var isTvMode = params.get('tv') === '1';
+var isAutoResume = params.get('resume') === '1';
+var isAutoFullscreen = params.get('fullscreen') === '1';
+var isAutoplay = params.get('autoplay') === '1';
+
+// Apply TV mode class to body
+if (isTvMode) {
+  document.body.classList.add('tv-mode');
+}
 
 if (!mediaId) {
   showError('Не указан ID');
@@ -432,14 +593,82 @@ async function init() {
     // check saved position
     var pr = await fetch('/api/media/' + mediaId + '/position');
     var pos = await pr.json();
-    if (pos.position_sec > 10) {
+
+    if (isAutoResume && pos.position_sec > 10) {
+      // Auto-resume: silently seek to saved position, no dialog
+      savedPos = pos.position_sec;
+      video.addEventListener('loadedmetadata', function() {
+        video.currentTime = savedPos;
+        // Show brief notification
+        var notify = document.getElementById('resumeNotify');
+        notify.textContent = 'Продолжаем с ' + formatTime(savedPos);
+        notify.classList.add('visible');
+        setTimeout(function() { notify.classList.remove('visible'); }, 3000);
+      }, { once: true });
+    } else if (pos.position_sec > 10) {
+      // Normal mode: show resume dialog
       savedPos = pos.position_sec;
       document.getElementById('resumeText').textContent = 'Продолжить с ' + formatTime(savedPos) + '?';
       document.getElementById('resumeBar').classList.add('visible');
     }
+
+    // If fullscreen=1 is set, show a start screen to get user gesture
+    // (browsers require user interaction for fullscreen API)
+    if (isAutoFullscreen) {
+      var startScreen = document.getElementById('startScreen');
+      document.getElementById('startTitle').textContent =
+        m.title + (m.year ? ' (' + m.year + ')' : '');
+      startScreen.classList.add('visible');
+
+      var startDone = false;
+      function onStartClick() {
+        if (startDone) return;
+        startDone = true;
+        startScreen.classList.remove('visible');
+        // Fullscreen inside user gesture -- guaranteed to work
+        var el = document.getElementById('player');
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(function() {});
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        }
+        // Also start playback
+        video.play().catch(function() {});
+      }
+      startScreen.addEventListener('click', onStartClick);
+      document.addEventListener('keydown', function onStartKey(e) {
+        if (!startDone) {
+          onStartClick();
+        }
+        document.removeEventListener('keydown', onStartKey);
+      });
+    }
+
+    // Autoplay (when no start screen) is handled inside loadHLS()
+    if (!isAutoFullscreen) {
+      // Autoplay without fullscreen -- handled in loadHLS
+    }
   } catch(e) {
     showError('Ошибка: ' + e.message);
   }
+}
+
+
+function tryAutoplay() {
+  // Skip if start screen is handling playback (fullscreen=1)
+  if (!isAutoplay || isAutoFullscreen) return;
+  video.play().catch(function() {
+    // Browser blocked autoplay -- try muted, then unmute on first interaction
+    video.muted = true;
+    video.play().catch(function() {});
+    function unmute() {
+      video.muted = false;
+      document.removeEventListener('click', unmute);
+      document.removeEventListener('keydown', unmute);
+    }
+    document.addEventListener('click', unmute, { once: true });
+    document.addEventListener('keydown', unmute, { once: true });
+  });
 }
 
 function loadHLS(url) {
@@ -449,6 +678,7 @@ function loadHLS(url) {
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, function() {
       loadingSp.classList.remove('visible');
+      tryAutoplay();
     });
     hls.on(Hls.Events.ERROR, function(_, data) {
       if (data.fatal) showError('Ошибка потока');
@@ -457,6 +687,7 @@ function loadHLS(url) {
     video.src = url;
     video.addEventListener('loadedmetadata', function() {
       loadingSp.classList.remove('visible');
+      tryAutoplay();
     });
   } else {
     showError('HLS не поддерживается');
@@ -520,6 +751,16 @@ playerEl.addEventListener('click', function(e) {
       toggleControls();
     }
   }, 310);
+});
+
+// Mouse movement shows controls (works for TV remotes emulating mouse, and regular PC)
+var lastMouseX = -1, lastMouseY = -1;
+document.addEventListener('mousemove', function(e) {
+  // Ignore sub-pixel jitter
+  if (Math.abs(e.clientX - lastMouseX) < 3 && Math.abs(e.clientY - lastMouseY) < 3) return;
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+  showControls();
 });
 
 function showSeekFeedback(side) {
@@ -760,8 +1001,8 @@ function showError(msg) {
   document.getElementById('errorOverlay').classList.add('visible');
 }
 
-// try fullscreen on mobile
-if (/Mobi|Android/i.test(navigator.userAgent)) {
+// Auto fullscreen on mobile (only when not using URL params)
+if (!isAutoFullscreen && /Mobi|Android/i.test(navigator.userAgent)) {
   video.addEventListener('play', function() {
     var el = document.getElementById('player');
     if (!document.fullscreenElement && el.requestFullscreen) {
