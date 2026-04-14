@@ -63,64 +63,69 @@ func apiMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := client.GetMovie(id)
+	v, err := client.Cached("movie:"+idStr, func() (any, error) {
+		return client.GetMovie(id)
+	})
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	api.Response(w, m)
+	api.Response(w, v)
 }
 
 func apiTop250(w http.ResponseWriter, r *http.Request) {
-	params := url.Values{
-		"lists":         {"top250"},
-		"sortField":     {"top250"},
-		"sortType":      {"1"},
-		"limit":         {"30"},
-		"selectFields":  defaultSelectFields(),
-		"notNullFields": {"poster.url", "backdrop.url"},
-	}
-	resp, err := client.QueryMovies(params)
+	v, err := client.Cached("top250", func() (any, error) {
+		return client.QueryMovies(url.Values{
+			"lists":         {"top250"},
+			"sortField":     {"top250"},
+			"sortType":      {"1"},
+			"limit":         {"30"},
+			"selectFields":  defaultSelectFields(),
+			"notNullFields": {"poster.url", "backdrop.url"},
+		})
+	})
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	api.Response(w, resp)
+	api.Response(w, v)
 }
 
 func apiPopular(w http.ResponseWriter, r *http.Request) {
-	params := url.Values{
-		"sortField":     {"votes.kp"},
-		"sortType":      {"-1"},
-		"limit":         {"20"},
-		"votes.kp":      {"50000-6666666"},
-		"selectFields":  defaultSelectFields(),
-		"notNullFields": {"poster.url"},
-	}
-	resp, err := client.QueryMovies(params)
+	v, err := client.Cached("popular", func() (any, error) {
+		return client.QueryMovies(url.Values{
+			"sortField":     {"votes.kp"},
+			"sortType":      {"-1"},
+			"limit":         {"20"},
+			"votes.kp":      {"50000-6666666"},
+			"selectFields":  defaultSelectFields(),
+			"notNullFields": {"poster.url"},
+		})
+	})
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	api.Response(w, resp)
+	api.Response(w, v)
 }
 
 func apiNew(w http.ResponseWriter, r *http.Request) {
-	params := url.Values{
-		"year":          {"2025-2026"},
-		"sortField":     {"year"},
-		"sortType":      {"-1"},
-		"limit":         {"20"},
-		"votes.kp":      {"1000-6666666"},
-		"selectFields":  defaultSelectFields(),
-		"notNullFields": {"poster.url", "name"},
-	}
-	resp, err := client.QueryMovies(params)
+	v, err := client.Cached("new", func() (any, error) {
+		return client.QueryMovies(url.Values{
+			"year":          {"2025-2026"},
+			"sortField":     {"year"},
+			"sortType":      {"-1"},
+			"limit":         {"20"},
+			"votes.kp":      {"1000-6666666"},
+			"selectFields":  defaultSelectFields(),
+			"notNullFields": {"poster.url", "name"},
+		})
+	})
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	api.Response(w, resp)
+	api.Response(w, v)
 }
 
 // internals

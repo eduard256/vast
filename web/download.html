@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<title>vast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0B0D12;
+  --bg-card: #141620;
+  --bg-elevated: #1A1D2A;
+  --bg-hover: #222538;
+  --border: rgba(255,255,255,0.06);
+  --text: #F0EFF4;
+  --text-secondary: #9392A0;
+  --text-muted: #5E5D6B;
+  --coral: #FB7185;
+  --coral-dim: rgba(251,113,133,0.15);
+  --green: #34D399;
+  --green-dim: rgba(52,211,153,0.12);
+  --amber: #FBBF24;
+  --red: #F87171;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'Manrope', system-ui, -apple-system, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html { -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Back button */
+.back-btn {
+  position: fixed;
+  top: calc(12px + var(--safe-top));
+  left: 12px;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+}
+.back-btn:active { background: rgba(0,0,0,0.7); }
+.back-btn svg { width: 22px; height: 22px; fill: currentColor; }
+
+/* Movie compact card */
+.movie-card {
+  display: flex;
+  gap: 14px;
+  padding: calc(16px + var(--safe-top)) 20px 16px;
+  padding-left: 64px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.movie-card__poster {
+  width: 50px;
+  min-width: 50px;
+  aspect-ratio: 2/3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.movie-card__poster img { width: 100%; height: 100%; object-fit: cover; }
+.movie-card__info { flex: 1; min-width: 0; }
+.movie-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.movie-card__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.filters::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--coral-dim);
+  color: var(--coral);
+  border-color: rgba(251,113,133,0.3);
+}
+.chip:active { transform: scale(0.95); }
+
+.sort-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.sort-row::-webkit-scrollbar { display: none; }
+
+/* Results */
+.results {
+  padding: 0 20px;
+}
+.result-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.torrent-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.torrent-card:active { border-color: var(--coral); }
+@media (hover: hover) { .torrent-card:hover { border-color: rgba(251,113,133,0.3); } }
+
+.torrent-card__title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+.torrent-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-seeds { color: var(--green); background: var(--green-dim); }
+.tag-leech { color: var(--red); background: rgba(248,113,113,0.1); }
+.tag-size { color: var(--text-secondary); background: var(--bg-elevated); }
+.tag-tracker { color: var(--amber); background: rgba(251,191,36,0.1); }
+
+.torrent-card__btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--coral);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.torrent-card__btn:active { transform: scale(0.97); }
+.torrent-card__btn.loading { opacity: 0.6; pointer-events: none; }
+.torrent-card__btn.success { background: var(--green); }
+.torrent-card__btn.error { background: var(--red); }
+
+/* Spinner */
+.spinner {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: none;
+}
+.spinner.visible { display: block; }
+.spinner::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--coral);
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: none;
+}
+
+.more-btn {
+  display: none;
+  width: 100%;
+  padding: 14px;
+  margin: 10px 0 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.more-btn:active { background: var(--bg-elevated); }
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .movie-card { padding-left: 64px; max-width: 800px; margin: 0 auto; }
+  .filters, .sort-row { max-width: 800px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
+  .results { max-width: 800px; margin: 0 auto; }
+}
+
+/* Toast overlay */
+.toast-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(11,13,18,0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.toast-overlay.visible { display: flex; }
+.toast-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: center;
+  max-width: 300px;
+}
+.toast-box svg { width: 48px; height: 48px; margin-bottom: 12px; }
+.toast-box p { font-size: 15px; font-weight: 600; }
+.toast-box .sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<a class="back-btn" href="javascript:history.back()">
+  <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+</a>
+
+<div class="movie-card" id="movieCard"></div>
+
+<div class="filters" id="qualityFilters"></div>
+<div class="sort-row" id="sortFilters"></div>
+
+<div class="results" id="results">
+  <div class="result-count" id="resultCount"></div>
+  <div id="resultList"></div>
+</div>
+<div class="spinner" id="spinner">Поиск раздач...</div>
+<div class="empty-state" id="emptyState">Ничего не найдено</div>
+<button class="more-btn" id="moreBtn">Загрузить ещё</button>
+
+<div class="toast-overlay" id="toastOverlay">
+  <div class="toast-box">
+    <svg viewBox="0 0 24 24" fill="#34D399"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+    <p>Загрузка начата</p>
+    <div class="sub">Перенаправляем...</div>
+  </div>
+</div>
+
+<script>
+var P = Object.fromEntries(new URLSearchParams(location.search));
+document.title = (P.name || 'Скачать') + ' - vast';
+
+// Fill movie card
+var card = document.getElementById('movieCard');
+var posterHtml = P.poster ? '<div class="movie-card__poster"><img src="' + P.poster + '"></div>' : '';
+card.innerHTML = posterHtml +
+  '<div class="movie-card__info">' +
+  '<div class="movie-card__title">' + esc(P.name || '') + '</div>' +
+  '<div class="movie-card__meta">' + esc(P.year || '') + (P.ratingKp ? ' \u00b7 KP ' + P.ratingKp : '') + '</div>' +
+  '</div>';
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Filters state
+var quality = '1080p';
+var sort = 's';
+var LIMIT = 15;
+var offset = 0;
+var loading = false;
+var allResults = [];
+
+// Build quality chips
+var qualities = [
+  { value: '', label: 'Все' },
+  { value: '2160p', label: '4K' },
+  { value: '1080p', label: '1080p' },
+  { value: '720p', label: '720p' }
+];
+
+var qContainer = document.getElementById('qualityFilters');
+qualities.forEach(function(q) {
+  var chip = document.createElement('div');
+  chip.className = 'chip' + (q.value === quality ? ' active' : '');
+  chip.textContent = q.label;
+  chip.onclick = function() {
+    quality = q.value;
+    qContainer.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+    chip.classList.add('active');
+    doSearch(false);
+  };
+  qContainer.appendChild(chip);
+});
+
+// Sort chips
+var sorts = [
+  { value: 's', label: 'По сидерам' },
+  { value: 'z', label: 'По размеру' },
+  { value: 'd', label: 'По дате' }
+];
+
+var sContainer = document.getElementById('sortFilters');
+sorts.forEach(function(s_item) {
+  var chip = document.createElement('div');
+  chip.className = 'chip' + (s_item.value === sort ? ' active' : '');
+  chip.textContent = s_item.label;
+  chip.onclick = function() {
+    sort = s_item.value;
+    sContainer.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+    chip.classList.add('active');
+    doSearch(false);
+  };
+  sContainer.appendChild(chip);
+});
+
+// Search
+function buildQuery() {
+  var q = P.name || '';
+  if (quality) q += ' ' + quality;
+  return q;
+}
+
+async function doSearch(append) {
+  if (loading) return;
+  loading = true;
+  document.getElementById('spinner').classList.add('visible');
+  document.getElementById('moreBtn').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'none';
+
+  if (!append) {
+    offset = 0;
+    allResults = [];
+    document.getElementById('resultList').innerHTML = '';
+  }
+
+  try {
+    var resp = await fetch('/api/torrentsearch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: buildQuery(),
+        order_by: sort,
+        limit: LIMIT,
+        offset: offset
+      })
+    });
+    var data = await resp.json();
+    var items = data.data || [];
+    allResults = allResults.concat(items);
+    renderResults(items);
+
+    if (items.length >= LIMIT) {
+      offset += LIMIT;
+      document.getElementById('moreBtn').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('emptyState').textContent = 'Ошибка: ' + e.message;
+    document.getElementById('emptyState').style.display = 'block';
+  }
+
+  loading = false;
+  document.getElementById('spinner').classList.remove('visible');
+}
+
+function renderResults(items) {
+  var list = document.getElementById('resultList');
+
+  items.forEach(function(item) {
+    var card = document.createElement('div');
+    card.className = 'torrent-card';
+    card.innerHTML =
+      '<div class="torrent-card__title">' + esc(item.title) + '</div>' +
+      '<div class="torrent-card__tags">' +
+      '<span class="tag tag-seeds">S ' + item.seeders + '</span>' +
+      '<span class="tag tag-leech">L ' + item.leechers + '</span>' +
+      '<span class="tag tag-size">' + esc(item.size) + '</span>' +
+      '<span class="tag tag-tracker">' + esc(item.tracker) + '</span>' +
+      '</div>';
+
+    var btn = document.createElement('button');
+    btn.className = 'torrent-card__btn';
+    btn.textContent = 'Скачать';
+    btn.onclick = function() { selectTorrent(item, btn); };
+    card.appendChild(btn);
+
+    list.appendChild(card);
+  });
+
+  var total = list.children.length;
+  document.getElementById('resultCount').textContent = total ? 'Найдено: ' + total : '';
+  if (total === 0 && !loading) {
+    document.getElementById('emptyState').style.display = 'block';
+  }
+}
+
+async function selectTorrent(item, btn) {
+  btn.textContent = 'Получаем ссылку...';
+  btn.classList.add('loading');
+
+  try {
+    // get magnet
+    var mr = await fetch('/api/torrentsearch/magnet?key=' + encodeURIComponent(item.magnet_key));
+    var md = await mr.json();
+    if (!md.magnet) throw new Error('no magnet');
+
+    btn.textContent = 'Отправляем...';
+
+    // send to download
+    var body = {
+      title: P.name || '',
+      alt_name: P.altName || '',
+      description: P.description || '',
+      poster_url: P.poster || '',
+      backdrop_url: P.backdrop || '',
+      year: parseInt(P.year) || 0,
+      kinopoisk_id: P.id || '',
+      rating_kp: parseFloat(P.ratingKp) || 0,
+      rating_imdb: parseFloat(P.ratingImdb) || 0,
+      genres: P.genres || '',
+      magnet: md.magnet,
+      type: 'movie',
+      torrent_title: item.title,
+      torrent_size: item.size,
+      torrent_tracker: item.tracker,
+      torrent_seeders: item.seeders
+    };
+
+    var dr = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    var dd = await dr.json();
+    if (dd.error) throw new Error(dd.error);
+
+    btn.textContent = 'Готово!';
+    btn.classList.remove('loading');
+    btn.classList.add('success');
+
+    // show toast and redirect
+    document.getElementById('toastOverlay').classList.add('visible');
+    setTimeout(function() {
+      location.href = '/';
+    }, 1500);
+
+  } catch(e) {
+    btn.textContent = 'Ошибка';
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    setTimeout(function() {
+      btn.textContent = 'Скачать';
+      btn.classList.remove('error');
+    }, 2000);
+  }
+}
+
+document.getElementById('moreBtn').onclick = function() { doSearch(true); };
+
+// initial search
+doSearch(false);
+</script>
+</body>
+</html>

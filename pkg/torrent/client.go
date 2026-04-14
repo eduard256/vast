@@ -115,14 +115,21 @@ func SetStatus(hash, status string) {
 	mu.Unlock()
 }
 
-// Remove stops and removes a download
+// Remove stops and removes a download, waits for file handles to close
 func Remove(hash string) {
 	mu.Lock()
-	if dl, ok := active[hash]; ok {
-		dl.T.Drop()
+	dl, ok := active[hash]
+	if ok {
 		delete(active, hash)
 	}
 	mu.Unlock()
+
+	if ok && dl.T != nil {
+		dl.T.Drop()
+		// wait for torrent client to release file descriptors
+		// needed on NFS where open files become .nfs* stubs
+		<-dl.T.Closed()
+	}
 }
 
 func Close() {

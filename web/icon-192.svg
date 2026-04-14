@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="42" fill="#0B0D12"/>
+  <defs>
+    <clipPath id="left">
+      <rect x="0" y="0" width="96" height="192"/>
+    </clipPath>
+    <clipPath id="right">
+      <rect x="96" y="0" width="96" height="192"/>
+    </clipPath>
+  </defs>
+  <!-- Left half of V - coral -->
+  <text clip-path="url(#left)" x="96" y="132" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-weight="900" font-size="120" fill="#FB7185" letter-spacing="-4">V</text>
+  <!-- Right half of V - lighter peach/rose -->
+  <text clip-path="url(#right)" x="96" y="132" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',sans-serif" font-weight="900" font-size="120" fill="#FDA4AF" letter-spacing="-4">V</text>
+</svg>

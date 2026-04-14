@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="vast">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<title>vast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0B0D12;
+  --bg-card: #141620;
+  --bg-elevated: #1A1D2A;
+  --bg-hover: #222538;
+  --border: rgba(255,255,255,0.06);
+  --text: #F0EFF4;
+  --text-secondary: #9392A0;
+  --text-muted: #5E5D6B;
+  --coral: #FB7185;
+  --coral-dim: rgba(251,113,133,0.15);
+  --coral-glow: rgba(251,113,133,0.3);
+  --green: #34D399;
+  --green-dim: rgba(52,211,153,0.12);
+  --amber: #FBBF24;
+  --amber-dim: rgba(251,191,36,0.12);
+  --blue: #60A5FA;
+  --blue-dim: rgba(96,165,250,0.12);
+  --red: #F87171;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'Manrope', system-ui, -apple-system, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --tab-height: 64px;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--tab-height) + var(--safe-bottom));
+}
+
+/* ============================================
+   DOWNLOAD STATUS BAR (top)
+   ============================================ */
+.dl-bar {
+  display: none;
+  padding: 10px 20px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.dl-bar:active { background: var(--bg-hover); }
+.dl-bar.visible { display: flex; align-items: center; gap: 12px; }
+.dl-bar__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--blue-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dl-bar__icon svg { width: 16px; height: 16px; }
+.dl-bar__info { flex: 1; min-width: 0; }
+.dl-bar__title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dl-bar__progress {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.dl-bar__fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.dl-bar__pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   HERO SLIDER
+   ============================================ */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 60vh;
+  min-height: 360px;
+  max-height: 520px;
+  overflow: hidden;
+}
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  will-change: opacity;
+}
+.hero-slide.active { opacity: 1; }
+.hero-slide__bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+.hero-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, var(--bg) 0%, rgba(11,13,18,0.4) 50%, rgba(11,13,18,0.2) 100%),
+    linear-gradient(to right, rgba(11,13,18,0.8) 0%, transparent 70%);
+}
+.hero-body {
+  position: absolute;
+  bottom: 32px;
+  left: 20px;
+  right: 20px;
+  z-index: 2;
+}
+.hero-body h1 {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.hero-rating {
+  background: var(--amber);
+  color: #000;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.hero-year, .hero-genre { color: var(--text-secondary); }
+.hero-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(240,239,244,0.7);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.hero-btn:active {
+  transform: scale(0.96);
+}
+@media (hover: hover) {
+  .hero-btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 24px var(--coral-glow);
+  }
+}
+.hero-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+.hero-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 3;
+}
+.hero-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transition: background 0.3s, width 0.3s;
+  cursor: pointer;
+}
+.hero-dot.active {
+  background: var(--coral);
+  width: 20px;
+  border-radius: 3px;
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+.sections {
+  padding: 24px 0 20px;
+}
+.section {
+  margin-bottom: 28px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.section-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--coral);
+  background: var(--coral-dim);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding: 0 20px;
+}
+.row::-webkit-scrollbar { display: none; }
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+  flex-shrink: 0;
+  width: 130px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  color: var(--text);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.card-poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+.card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+@media (hover: hover) {
+  .card:hover .card-poster img {
+    transform: scale(1.06);
+  }
+}
+.card-rating {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.card-rating.high { color: var(--green); }
+.card-rating.mid { color: var(--amber); }
+.card-rating.low { color: var(--red); }
+.card-downloaded {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-downloaded svg { width: 12px; height: 12px; fill: #fff; }
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* ============================================
+   SKELETONS
+   ============================================ */
+.skel-card { flex-shrink: 0; width: 130px; }
+.skel-poster {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(110deg, var(--bg-card) 30%, var(--bg-elevated) 50%, var(--bg-card) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skel-text {
+  height: 12px;
+  width: 80%;
+  border-radius: 4px;
+  margin-top: 8px;
+  background: var(--bg-card);
+}
+.skel-text-s {
+  height: 10px;
+  width: 50%;
+  border-radius: 3px;
+  margin-top: 5px;
+  background: var(--bg-card);
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   BOTTOM TAB BAR
+   ============================================ */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  height: calc(var(--tab-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(11,13,18,0.92);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 16px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  transition: color 0.2s;
+  -webkit-user-select: none;
+  user-select: none;
+  position: relative;
+}
+.tab.active { color: var(--coral); }
+.tab svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.15s;
+}
+.tab.active svg { transform: scale(1.1); }
+.tab-badge {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+/* ============================================
+   TOAST
+   ============================================ */
+.toast {
+  position: fixed;
+  bottom: calc(var(--tab-height) + var(--safe-bottom) + 12px);
+  left: 20px;
+  right: 20px;
+  z-index: 300;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+  pointer-events: none;
+}
+.toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* ============================================
+   DESKTOP (> 1024px)
+   ============================================ */
+@media (min-width: 1024px) {
+  :root {
+    --tab-height: 0px;
+  }
+
+  body {
+    padding-bottom: 0;
+    padding-left: 220px;
+  }
+
+  .tab-bar {
+    top: 0;
+    bottom: 0;
+    right: auto;
+    width: 220px;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 32px 16px;
+    gap: 4px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+
+  .tab {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    justify-content: flex-start;
+  }
+  .tab:hover { background: var(--bg-hover); color: var(--text-secondary); }
+  .tab.active { background: var(--coral-dim); }
+  .tab svg { width: 20px; height: 20px; }
+  .tab-badge {
+    position: static;
+    margin-left: auto;
+  }
+
+  .tab-bar::before {
+    content: 'vast';
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--coral), #F43F5E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 32px;
+    padding: 0 16px;
+  }
+
+  .hero { height: 70vh; max-height: 600px; }
+  .hero-body { left: 48px; right: auto; max-width: 500px; bottom: 48px; }
+  .hero-body h1 { font-size: 38px; }
+  .hero-desc { -webkit-line-clamp: 3; font-size: 14px; }
+
+  .section-header { padding: 0 48px; }
+  .row { padding: 0 48px; gap: 16px; }
+  .card { width: 170px; }
+  .skel-card { width: 170px; }
+
+  .dl-bar { padding: 12px 48px; }
+
+  .toast {
+    left: auto;
+    right: 32px;
+    bottom: 32px;
+    width: 360px;
+  }
+}
+
+/* ============================================
+   FADE IN ANIMATION
+   ============================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  opacity: 0;
+  animation: fadeUp 0.5s ease forwards;
+}
+</style>
+</head>
+<body>
+
+<!-- Download status bar -->
+<div class="dl-bar" id="dlBar" onclick="location.href='/downloads.html'">
+  <div class="dl-bar__icon">
+    <svg viewBox="0 0 24 24" fill="#60A5FA"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-5 2v2h10v-2H7z"/></svg>
+  </div>
+  <div class="dl-bar__info">
+    <div class="dl-bar__title" id="dlBarTitle"></div>
+    <div class="dl-bar__progress"><div class="dl-bar__fill" id="dlBarFill"></div></div>
+  </div>
+  <div class="dl-bar__pct" id="dlBarPct"></div>
+</div>
+
+<!-- Hero -->
+<div class="hero" id="hero">
+  <div id="heroSlides"></div>
+  <div class="hero-dots" id="heroDots"></div>
+</div>
+
+<!-- Content sections -->
+<div class="sections" id="sections">
+  <!-- Downloaded section (shown only if we have downloaded media) -->
+  <section class="section" id="sectionDownloaded" style="display:none">
+    <div class="section-header">
+      <h2 class="section-title">Скачано</h2>
+      <span class="section-badge" id="downloadedCount"></span>
+    </div>
+    <div class="row" id="rowDownloaded"></div>
+  </section>
+
+  <section class="section fade-in" style="animation-delay:0.1s">
+    <div class="section-header">
+      <h2 class="section-title">Популярное</h2>
+    </div>
+    <div class="row" id="rowPopular"></div>
+  </section>
+
+  <section class="section fade-in" style="animation-delay:0.2s">
+    <div class="section-header">
+      <h2 class="section-title">Топ-250</h2>
+    </div>
+    <div class="row" id="rowTop"></div>
+  </section>
+
+  <section class="section fade-in" style="animation-delay:0.3s">
+    <div class="section-header">
+      <h2 class="section-title">Новинки</h2>
+    </div>
+    <div class="row" id="rowNew"></div>
+  </section>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Bottom tab bar -->
+<nav class="tab-bar">
+  <a href="/" class="tab active">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span>Главная</span>
+  </a>
+  <a href="/search.html" class="tab">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span>Поиск</span>
+  </a>
+  <a href="/downloads.html" class="tab" id="tabDownloads">
+    <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-5 2v2h10v-2H7z"/></svg>
+    <span>Загрузки</span>
+  </a>
+</nav>
+
+<script>
+// ===========================================
+// Utility helpers
+// ===========================================
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function ratingClass(r) {
+  if (r >= 7) return 'high';
+  if (r >= 5) return 'mid';
+  return 'low';
+}
+
+// ===========================================
+// Card builder
+// ===========================================
+function makeCard(m, downloaded) {
+  var a = document.createElement('a');
+  a.className = 'card';
+  a.href = '/movie.html?kp_id=' + (m.id || m.kinopoisk_id || '');
+
+  var poster = m.poster ? (m.poster.previewUrl || m.poster.url) : (m.poster_url || '');
+  var rating = m.rating ? m.rating.kp : m.rating_kp;
+  var name = m.name || m.title || m.alternativeName || '';
+  var year = m.year || '';
+  var genres = m.genres ? (Array.isArray(m.genres) ? m.genres.map(function(g) { return g.name; }).slice(0,2).join(', ') : m.genres.split(',').slice(0,2).join(', ')) : '';
+
+  var posterEl = document.createElement('div');
+  posterEl.className = 'card-poster';
+
+  if (poster) {
+    var img = document.createElement('img');
+    img.src = poster;
+    img.alt = name;
+    img.loading = 'lazy';
+    posterEl.appendChild(img);
+  }
+
+  if (rating && rating > 0) {
+    var rb = document.createElement('span');
+    rb.className = 'card-rating ' + ratingClass(rating);
+    rb.textContent = Number(rating).toFixed(1);
+    posterEl.appendChild(rb);
+  }
+
+  if (downloaded) {
+    var dl = document.createElement('div');
+    dl.className = 'card-downloaded';
+    dl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+    posterEl.appendChild(dl);
+  }
+
+  a.appendChild(posterEl);
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'card-title';
+  titleEl.textContent = name;
+  a.appendChild(titleEl);
+
+  var sub = document.createElement('div');
+  sub.className = 'card-sub';
+  sub.textContent = year + (genres ? ' \u00b7 ' + genres : '');
+  a.appendChild(sub);
+
+  return a;
+}
+
+function makeMediaCard(m) {
+  var a = document.createElement('a');
+  a.className = 'card';
+  if (m.status === 'ready') {
+    a.href = '/player.html?id=' + m.id;
+  } else {
+    a.href = '/movie.html?media_id=' + m.id;
+  }
+
+  var posterEl = document.createElement('div');
+  posterEl.className = 'card-poster';
+
+  if (m.poster_url) {
+    var img = document.createElement('img');
+    img.src = m.poster_url;
+    img.alt = m.title;
+    img.loading = 'lazy';
+    posterEl.appendChild(img);
+  }
+
+  if (m.rating_kp && m.rating_kp > 0) {
+    var rb = document.createElement('span');
+    rb.className = 'card-rating ' + ratingClass(m.rating_kp);
+    rb.textContent = Number(m.rating_kp).toFixed(1);
+    posterEl.appendChild(rb);
+  }
+
+  var dl = document.createElement('div');
+  dl.className = 'card-downloaded';
+  dl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+  posterEl.appendChild(dl);
+
+  a.appendChild(posterEl);
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'card-title';
+  titleEl.textContent = m.title;
+  a.appendChild(titleEl);
+
+  var sub = document.createElement('div');
+  sub.className = 'card-sub';
+  sub.textContent = (m.year || '') + (m.genres ? ' \u00b7 ' + m.genres.split(',')[0] : '');
+  a.appendChild(sub);
+
+  return a;
+}
+
+function addSkeletons(container, n) {
+  for (var i = 0; i < n; i++) {
+    var d = document.createElement('div');
+    d.className = 'skel-card';
+    d.innerHTML = '<div class="skel-poster"></div><div class="skel-text"></div><div class="skel-text-s"></div>';
+    container.appendChild(d);
+  }
+}
+
+// ===========================================
+// Hero slider
+// ===========================================
+var heroSlides = [];
+var heroIdx = 0;
+var heroTimer = null;
+
+function renderHero(movies) {
+  heroSlides = movies.filter(function(m) { return m.backdrop && m.backdrop.url; }).slice(0, 5);
+  if (heroSlides.length === 0) return;
+
+  var container = document.getElementById('heroSlides');
+  var dots = document.getElementById('heroDots');
+
+  heroSlides.forEach(function(m, i) {
+    var slide = document.createElement('div');
+    slide.className = 'hero-slide' + (i === 0 ? ' active' : '');
+
+    var img = document.createElement('img');
+    img.className = 'hero-slide__bg';
+    img.src = m.backdrop.url;
+    img.alt = '';
+
+    var grad = document.createElement('div');
+    grad.className = 'hero-gradient';
+
+    var body = document.createElement('div');
+    body.className = 'hero-body';
+
+    var h1 = document.createElement('h1');
+    h1.textContent = m.name || m.alternativeName;
+
+    var meta = document.createElement('div');
+    meta.className = 'hero-meta';
+    if (m.rating && m.rating.kp) {
+      var rb = document.createElement('span');
+      rb.className = 'hero-rating';
+      rb.textContent = m.rating.kp.toFixed(1);
+      meta.appendChild(rb);
+    }
+    var yr = document.createElement('span');
+    yr.className = 'hero-year';
+    yr.textContent = m.year || '';
+    meta.appendChild(yr);
+    var gr = document.createElement('span');
+    gr.className = 'hero-genre';
+    gr.textContent = (m.genres || []).map(function(g) { return g.name; }).slice(0,3).join(', ');
+    meta.appendChild(gr);
+
+    var desc = document.createElement('p');
+    desc.className = 'hero-desc';
+    desc.textContent = m.shortDescription || '';
+
+    var btn = document.createElement('a');
+    btn.className = 'hero-btn';
+    btn.href = '/movie.html?kp_id=' + m.id;
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>';
+    var span = document.createTextNode(' Подробнее');
+    btn.appendChild(span);
+
+    body.append(h1, meta, desc, btn);
+    slide.append(img, grad, body);
+    container.appendChild(slide);
+
+    var dot = document.createElement('div');
+    dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
+    dot.dataset.i = i;
+    dots.appendChild(dot);
+  });
+
+  dots.addEventListener('click', function(e) {
+    var i = e.target.dataset.i;
+    if (i != null) setHeroSlide(+i);
+  });
+
+  // touch swipe on hero
+  var startX = 0;
+  var heroEl = document.getElementById('hero');
+  heroEl.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
+  heroEl.addEventListener('touchend', function(e) {
+    var dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) {
+      setHeroSlide((heroIdx + (dx < 0 ? 1 : -1) + heroSlides.length) % heroSlides.length);
+    }
+  }, { passive: true });
+
+  heroTimer = setInterval(function() {
+    setHeroSlide((heroIdx + 1) % heroSlides.length);
+  }, 6000);
+}
+
+function setHeroSlide(i) {
+  heroIdx = i;
+  document.querySelectorAll('.hero-slide').forEach(function(s, j) { s.classList.toggle('active', j === i); });
+  document.querySelectorAll('.hero-dot').forEach(function(d, j) { d.classList.toggle('active', j === i); });
+  clearInterval(heroTimer);
+  heroTimer = setInterval(function() {
+    setHeroSlide((heroIdx + 1) % heroSlides.length);
+  }, 6000);
+}
+
+// ===========================================
+// Fill rows
+// ===========================================
+function fillRow(el, movies, mediaMap) {
+  el.textContent = '';
+  movies.forEach(function(m) {
+    var isDownloaded = mediaMap && mediaMap[String(m.id)];
+    el.appendChild(makeCard(m, isDownloaded));
+  });
+}
+
+// ===========================================
+// Download bar polling
+// ===========================================
+function pollDownloads() {
+  fetch('/api/downloads').then(function(r) { return r.json(); }).then(function(list) {
+    var bar = document.getElementById('dlBar');
+    var tab = document.getElementById('tabDownloads');
+    var badge = tab.querySelector('.tab-badge');
+
+    var active = list.filter(function(d) { return d.status === 'downloading' || d.status === 'transcoding'; });
+
+    if (active.length > 0) {
+      var d = active[0];
+      document.getElementById('dlBarTitle').textContent = d.name || 'Загрузка...';
+      document.getElementById('dlBarFill').style.width = d.percent.toFixed(1) + '%';
+      document.getElementById('dlBarPct').textContent = d.percent.toFixed(0) + '%';
+      bar.classList.add('visible');
+
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'tab-badge';
+        tab.appendChild(badge);
+      }
+    } else {
+      bar.classList.remove('visible');
+      if (badge) badge.remove();
+    }
+  }).catch(function() {});
+}
+
+// ===========================================
+// Init
+// ===========================================
+var mediaMap = {}; // kinopoisk_id -> media object
+var mediaByTitle = {}; // title.toLowerCase -> media object
+
+async function init() {
+  // add skeletons
+  addSkeletons(document.getElementById('rowPopular'), 8);
+  addSkeletons(document.getElementById('rowTop'), 8);
+  addSkeletons(document.getElementById('rowNew'), 8);
+
+  // load our media and KP data in parallel
+  var mediaList = [];
+  try {
+    var mr = await fetch('/api/media');
+    mediaList = await mr.json();
+    mediaList.forEach(function(m) {
+      if (m.kinopoisk_id) mediaMap[m.kinopoisk_id] = m;
+      if (m.title) mediaByTitle[m.title.toLowerCase()] = m;
+    });
+  } catch(e) {}
+
+  // show downloaded section
+  var readyMedia = mediaList.filter(function(m) { return m.status === 'ready'; });
+  if (readyMedia.length > 0) {
+    var sec = document.getElementById('sectionDownloaded');
+    sec.style.display = '';
+    document.getElementById('downloadedCount').textContent = readyMedia.length;
+    var row = document.getElementById('rowDownloaded');
+    readyMedia.forEach(function(m) {
+      row.appendChild(makeMediaCard(m));
+    });
+  }
+
+  // load KP data
+  try {
+    var responses = await Promise.all([
+      fetch('/api/kinopoisk/popular').then(function(r) { return r.json(); }),
+      fetch('/api/kinopoisk/top250').then(function(r) { return r.json(); }),
+      fetch('/api/kinopoisk/new').then(function(r) { return r.json(); })
+    ]);
+
+    var popular = responses[0];
+    var top250 = responses[1];
+    var newest = responses[2];
+
+    renderHero(top250.docs || []);
+    fillRow(document.getElementById('rowPopular'), popular.docs || [], mediaMap);
+    fillRow(document.getElementById('rowTop'), top250.docs || [], mediaMap);
+    fillRow(document.getElementById('rowNew'), newest.docs || [], mediaMap);
+  } catch(e) {
+    console.error('KP load error:', e);
+  }
+
+  // start polling downloads
+  pollDownloads();
+  setInterval(pollDownloads, 3000);
+}
+
+// ===========================================
+// PWA + Service Worker
+// ===========================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,13 +19,54 @@ type Client struct {
 	Token   string
 	BaseURL string
 	HTTP    *http.Client
+
+	mu    sync.Mutex
+	cache map[string]any
 }
 
 func NewClient(token string) *Client {
-	return &Client{
+	c := &Client{
 		Token:   token,
 		BaseURL: DefaultBaseURL,
 		HTTP:    &http.Client{Timeout: 15 * time.Second},
+		cache:   map[string]any{},
+	}
+	go c.resetLoop()
+	return c
+}
+
+// Cached returns cached value or calls fetch, stores and returns the result
+func (c *Client) Cached(key string, fetch func() (any, error)) (any, error) {
+	c.mu.Lock()
+	if v, ok := c.cache[key]; ok {
+		c.mu.Unlock()
+		return v, nil
+	}
+	c.mu.Unlock()
+
+	v, err := fetch()
+	if err != nil {
+		return nil, err
+	}
+
+	c.mu.Lock()
+	c.cache[key] = v
+	c.mu.Unlock()
+
+	return v, nil
+}
+
+// resetLoop clears cache at midnight Moscow time (UTC+3)
+func (c *Client) resetLoop() {
+	msk := time.FixedZone("MSK", 3*60*60)
+	for {
+		now := time.Now().In(msk)
+		next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, msk)
+		time.Sleep(next.Sub(now))
+
+		c.mu.Lock()
+		c.cache = map[string]any{}
+		c.mu.Unlock()
 	}
 }
 

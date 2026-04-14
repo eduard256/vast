@@ -210,7 +210,15 @@ func waitComplete(hash string, mediaID int) {
 		hlsPath := hls.PlaylistPath(dataDir, mediaID)
 		log.Printf("[download] transcode done: %s", hlsPath)
 		db.Conn().Exec(`UPDATE media SET status = 'ready', hls_path = ? WHERE id = ?`, hlsPath, mediaID)
-		torrent.SetStatus(hash, "ready")
+
+		// remove torrent and source files after successful transcode
+		torrent.Remove(hash)
+		downloadDir := filepath.Join(dataDir, "downloads", hash)
+		if err := os.RemoveAll(downloadDir); err != nil {
+			log.Printf("[download] failed to remove source files %s: %v", downloadDir, err)
+		} else {
+			log.Printf("[download] removed source files: %s", downloadDir)
+		}
 	})
 }
 

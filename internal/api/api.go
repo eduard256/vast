@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"os"
 )
@@ -23,11 +24,18 @@ func Error(w http.ResponseWriter, err error, code int) {
 	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }
 
+// SetWebFS registers the embedded web filesystem as the fallback handler.
+// Must be called before Init.
+func SetWebFS(webFS fs.FS) {
+	fileServer := http.FileServer(http.FS(webFS))
+	mux.Handle("/", fileServer)
+}
+
 func Init() {
 	// CORS middleware for all requests
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		if r.Method == "OPTIONS" {
 			return

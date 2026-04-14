@@ -2,175 +2,536 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VAST Downloads</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<title>vast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: monospace; padding: 20px; max-width: 700px; margin: 0 auto; }
-h3 { margin-bottom: 16px; }
-#add-form { border: 1px solid #ccc; padding: 12px; margin-bottom: 20px; }
-#add-form input, #add-form select { width: 100%; padding: 6px; margin-bottom: 8px; font-family: monospace; font-size: 13px; }
-#add-form button { padding: 8px 16px; cursor: pointer; font-family: monospace; }
-#downloads { margin-top: 10px; }
-.dl-item { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; }
-.dl-name { font-weight: bold; margin-bottom: 6px; }
-.dl-bar { height: 16px; background: #eee; margin: 6px 0; position: relative; }
-.dl-bar-fill { height: 100%; background: #4caf50; transition: width 0.5s; }
-.dl-bar-text { position: absolute; top: 0; left: 6px; font-size: 11px; line-height: 16px; }
-.dl-info { font-size: 12px; color: #666; }
-.dl-actions { margin-top: 6px; }
-.dl-actions button { padding: 4px 10px; cursor: pointer; font-family: monospace; font-size: 12px; }
-.status-downloading { border-left: 4px solid #2196f3; }
-.status-transcoding { border-left: 4px solid #ff9800; }
-.status-ready { border-left: 4px solid #4caf50; }
-.status-done { border-left: 4px solid #4caf50; }
-.status-error { border-left: 4px solid #f44336; }
-nav { margin-bottom: 16px; }
-nav a { margin-right: 12px; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0B0D12;
+  --bg-card: #141620;
+  --bg-elevated: #1A1D2A;
+  --bg-hover: #222538;
+  --border: rgba(255,255,255,0.06);
+  --text: #F0EFF4;
+  --text-secondary: #9392A0;
+  --text-muted: #5E5D6B;
+  --coral: #FB7185;
+  --coral-dim: rgba(251,113,133,0.15);
+  --green: #34D399;
+  --green-dim: rgba(52,211,153,0.12);
+  --amber: #FBBF24;
+  --blue: #60A5FA;
+  --blue-dim: rgba(96,165,250,0.12);
+  --orange: #FB923C;
+  --orange-dim: rgba(251,146,60,0.12);
+  --red: #F87171;
+  --red-dim: rgba(248,113,113,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'Manrope', system-ui, -apple-system, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --tab-height: 64px;
+}
+
+html { -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--tab-height) + var(--safe-bottom));
+}
+
+/* Header */
+.page-header {
+  padding: 20px 20px 16px;
+}
+.page-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* Download items */
+.dl-list {
+  padding: 0 20px;
+}
+
+.dl-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s;
+  touch-action: pan-y;
+}
+
+.dl-card__inner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.dl-card__poster {
+  width: 48px;
+  min-width: 48px;
+  aspect-ratio: 2/3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.dl-card__poster img { width: 100%; height: 100%; object-fit: cover; }
+
+.dl-card__body { flex: 1; min-width: 0; }
+.dl-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.dl-card__bar {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.dl-card__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.dl-card__bar-fill.downloading { background: var(--blue); }
+.dl-card__bar-fill.transcoding { background: var(--orange); }
+.dl-card__bar-fill.ready { background: var(--green); }
+.dl-card__bar-fill.error { background: var(--red); }
+
+.dl-card__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.dl-card__status {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dl-card__status.downloading { color: var(--blue); background: var(--blue-dim); }
+.dl-card__status.transcoding { color: var(--orange); background: var(--orange-dim); }
+.dl-card__status.ready { color: var(--green); background: var(--green-dim); }
+.dl-card__status.error { color: var(--red); background: var(--red-dim); }
+
+.dl-card__pct {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.dl-card__detail {
+  color: var(--text-muted);
+}
+
+.dl-card__actions {
+  flex-shrink: 0;
+}
+
+.dl-delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--red-dim);
+  border: none;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.dl-delete-btn:active { background: rgba(248,113,113,0.2); }
+.dl-delete-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+/* Transcode detail bars */
+.dl-card__transcode {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tc-bar {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.tc-bar__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s;
+}
+.tc-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.tc-col { flex: 1; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+.empty-state svg { width: 48px; height: 48px; opacity: 0.3; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.6; }
+
+/* Tab bar */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 200;
+  height: calc(var(--tab-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(11,13,18,0.92);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 16px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.tab.active { color: var(--coral); }
+.tab svg { width: 24px; height: 24px; fill: currentColor; }
+
+/* Confirm dialog */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(11,13,18,0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.confirm-overlay.visible { display: flex; }
+.confirm-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 300px;
+  text-align: center;
+}
+.confirm-box p { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.confirm-box .sub { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-btn.cancel { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+.confirm-btn.delete { background: var(--red); color: #fff; }
+
+/* Desktop */
+@media (min-width: 1024px) {
+  :root { --tab-height: 0px; }
+  body { padding-bottom: 0; padding-left: 220px; }
+
+  .tab-bar {
+    top: 0; bottom: 0; right: auto;
+    width: 220px; height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 32px 16px;
+    gap: 4px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+  .tab {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    justify-content: flex-start;
+  }
+  .tab:hover { background: var(--bg-hover); color: var(--text-secondary); }
+  .tab.active { background: var(--coral-dim); }
+  .tab svg { width: 20px; height: 20px; }
+  .tab-bar::before {
+    content: 'vast';
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #FB7185, #F43F5E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 32px;
+    padding: 0 16px;
+  }
+
+  .page-header { padding: 24px 48px 16px; }
+  .dl-list { padding: 0 48px; max-width: 800px; }
+}
 </style>
 </head>
 <body>
 
-<nav><a href="/library.html">Library</a> <a href="/downloads.html"><b>Downloads</b></a></nav>
-<h3>Downloads</h3>
-
-<div id="add-form">
-  <input id="f-title" placeholder="Title">
-  <input id="f-magnet" placeholder="Magnet link">
-  <input id="f-poster" placeholder="Poster URL (optional)">
-  <input id="f-desc" placeholder="Description (optional)">
-  <select id="f-type"><option value="movie">Movie</option><option value="series">Series</option></select>
-  <button onclick="addDownload()">Add</button>
+<div class="page-header">
+  <h1 class="page-title">Загрузки</h1>
 </div>
 
-<div id="downloads"></div>
+<div class="dl-list" id="dlList">
+  <div class="empty-state" id="emptyState">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-5 2v2h10v-2H7z"/></svg>
+    <p>Нет активных загрузок</p>
+  </div>
+</div>
+
+<!-- Confirm delete -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p>Удалить загрузку?</p>
+    <div class="sub" id="confirmName"></div>
+    <div class="confirm-btns">
+      <button class="confirm-btn cancel" onclick="closeConfirm()">Отмена</button>
+      <button class="confirm-btn delete" id="confirmDelete">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<nav class="tab-bar">
+  <a href="/" class="tab">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span>Главная</span>
+  </a>
+  <a href="/search.html" class="tab">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span>Поиск</span>
+  </a>
+  <a href="/downloads.html" class="tab active">
+    <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-5 2v2h10v-2H7z"/></svg>
+    <span>Загрузки</span>
+  </a>
+</nav>
 
 <script>
-const API = 'http://10.0.1.100:8990';
-const container = document.getElementById('downloads');
+var deleteHash = '';
 
 function formatSize(bytes) {
-  if (bytes > 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB';
-  if (bytes > 1048576) return (bytes / 1048576).toFixed(0) + ' MB';
-  return (bytes / 1024).toFixed(0) + ' KB';
+  if (bytes > 1073741824) return (bytes / 1073741824).toFixed(1) + ' ГБ';
+  if (bytes > 1048576) return (bytes / 1048576).toFixed(0) + ' МБ';
+  return (bytes / 1024).toFixed(0) + ' КБ';
+}
+
+function statusLabel(s) {
+  switch(s) {
+    case 'downloading': return 'Загрузка';
+    case 'transcoding': return 'Конвертация';
+    case 'ready': return 'Готово';
+    case 'error': return 'Ошибка';
+    default: return s;
+  }
 }
 
 function render(list) {
-  container.textContent = '';
+  var container = document.getElementById('dlList');
+  container.innerHTML = '';
 
   if (!list || list.length === 0) {
-    container.textContent = 'No active downloads';
+    container.innerHTML =
+      '<div class="empty-state">' +
+      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-5 2v2h10v-2H7z"/></svg>' +
+      '<p>Нет активных загрузок</p></div>';
     return;
   }
 
-  for (const dl of list) {
-    const div = document.createElement('div');
-    div.className = 'dl-item status-' + dl.status;
+  list.forEach(function(dl) {
+    var card = document.createElement('div');
+    card.className = 'dl-card';
 
-    const pct = dl.percent.toFixed(1);
+    var pct = dl.percent.toFixed(1);
+    var barClass = dl.status;
 
-    const name = document.createElement('div');
-    name.className = 'dl-name';
-    name.textContent = dl.name || 'Loading metadata...';
-    div.appendChild(name);
+    var inner = document.createElement('div');
+    inner.className = 'dl-card__inner';
 
-    const bar = document.createElement('div');
-    bar.className = 'dl-bar';
-    const fill = document.createElement('div');
-    fill.className = 'dl-bar-fill';
+    // poster placeholder
+    var posterDiv = document.createElement('div');
+    posterDiv.className = 'dl-card__poster';
+    // try to get poster from media
+    if (dl.poster_url) {
+      var img = document.createElement('img');
+      img.src = dl.poster_url;
+      posterDiv.appendChild(img);
+    }
+    inner.appendChild(posterDiv);
+
+    // body
+    var body = document.createElement('div');
+    body.className = 'dl-card__body';
+
+    var name = document.createElement('div');
+    name.className = 'dl-card__name';
+    name.textContent = dl.name || 'Загрузка...';
+    body.appendChild(name);
+
+    var bar = document.createElement('div');
+    bar.className = 'dl-card__bar';
+    var fill = document.createElement('div');
+    fill.className = 'dl-card__bar-fill ' + barClass;
     fill.style.width = pct + '%';
     bar.appendChild(fill);
-    const barText = document.createElement('div');
-    barText.className = 'dl-bar-text';
-    barText.textContent = pct + '%';
-    bar.appendChild(barText);
-    div.appendChild(bar);
+    body.appendChild(bar);
 
-    if (dl.status === 'transcoding') {
+    var info = document.createElement('div');
+    info.className = 'dl-card__info';
+
+    var status = document.createElement('span');
+    status.className = 'dl-card__status ' + dl.status;
+    status.textContent = statusLabel(dl.status);
+    info.appendChild(status);
+
+    var pctEl = document.createElement('span');
+    pctEl.className = 'dl-card__pct';
+    pctEl.textContent = pct + '%';
+    info.appendChild(pctEl);
+
+    var detail = document.createElement('span');
+    detail.className = 'dl-card__detail';
+    detail.textContent = formatSize(dl.done) + ' / ' + formatSize(dl.total);
+    if (dl.status === 'downloading') detail.textContent += ' | S:' + dl.seeds;
+    info.appendChild(detail);
+
+    body.appendChild(info);
+
+    // transcode detail bars
+    if (dl.status === 'transcoding' && (dl.audio_percent != null || dl.video_percent != null)) {
+      var tc = document.createElement('div');
+      tc.className = 'dl-card__transcode';
+
       if (dl.audio_percent != null) {
-        const abar = document.createElement('div');
-        abar.className = 'dl-bar';
-        const afill = document.createElement('div');
-        afill.className = 'dl-bar-fill';
-        afill.style.width = dl.audio_percent.toFixed(1) + '%';
-        afill.style.background = '#ff9800';
-        abar.appendChild(afill);
-        const atext = document.createElement('div');
-        atext.className = 'dl-bar-text';
-        atext.textContent = 'Audio: ' + dl.audio_percent.toFixed(1) + '%';
-        abar.appendChild(atext);
-        div.appendChild(abar);
+        var ac = document.createElement('div');
+        ac.className = 'tc-col';
+        ac.innerHTML = '<div class="tc-label">Аудио ' + dl.audio_percent.toFixed(0) + '%</div>';
+        var ab = document.createElement('div');
+        ab.className = 'tc-bar';
+        var af = document.createElement('div');
+        af.className = 'tc-bar__fill';
+        af.style.width = dl.audio_percent.toFixed(1) + '%';
+        af.style.background = 'var(--orange)';
+        ab.appendChild(af);
+        ac.appendChild(ab);
+        tc.appendChild(ac);
       }
       if (dl.video_percent != null) {
-        const vbar = document.createElement('div');
-        vbar.className = 'dl-bar';
-        const vfill = document.createElement('div');
-        vfill.className = 'dl-bar-fill';
-        vfill.style.width = dl.video_percent.toFixed(1) + '%';
-        vfill.style.background = '#2196f3';
-        vbar.appendChild(vfill);
-        const vtext = document.createElement('div');
-        vtext.className = 'dl-bar-text';
-        vtext.textContent = 'Video: ' + dl.video_percent.toFixed(1) + '%';
-        vbar.appendChild(vtext);
-        div.appendChild(vbar);
+        var vc = document.createElement('div');
+        vc.className = 'tc-col';
+        vc.innerHTML = '<div class="tc-label">Видео ' + dl.video_percent.toFixed(0) + '%</div>';
+        var vb = document.createElement('div');
+        vb.className = 'tc-bar';
+        var vf = document.createElement('div');
+        vf.className = 'tc-bar__fill';
+        vf.style.width = dl.video_percent.toFixed(1) + '%';
+        vf.style.background = 'var(--blue)';
+        vb.appendChild(vf);
+        vc.appendChild(vb);
+        tc.appendChild(vc);
       }
+      body.appendChild(tc);
     }
 
-    const info = document.createElement('div');
-    info.className = 'dl-info';
-    let infoText = formatSize(dl.done) + ' / ' + formatSize(dl.total) + ' | Status: ' + dl.status;
-    if (dl.status === 'downloading') {
-      infoText += ' | Seeds: ' + dl.seeds;
-    }
-    info.textContent = infoText;
-    div.appendChild(info);
+    inner.appendChild(body);
 
-    const actions = document.createElement('div');
-    actions.className = 'dl-actions';
-    const delBtn = document.createElement('button');
-    delBtn.textContent = 'Delete';
-    delBtn.onclick = function() { removeDl(dl.hash); };
+    // delete button
+    var actions = document.createElement('div');
+    actions.className = 'dl-card__actions';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'dl-delete-btn';
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>';
+    delBtn.onclick = function() { showConfirm(dl.hash, dl.name); };
     actions.appendChild(delBtn);
-    div.appendChild(actions);
+    inner.appendChild(actions);
 
-    container.appendChild(div);
-  }
+    card.appendChild(inner);
+    container.appendChild(card);
+  });
 }
+
+function showConfirm(hash, name) {
+  deleteHash = hash;
+  document.getElementById('confirmName').textContent = name || '';
+  document.getElementById('confirmOverlay').classList.add('visible');
+}
+
+function closeConfirm() {
+  deleteHash = '';
+  document.getElementById('confirmOverlay').classList.remove('visible');
+}
+
+document.getElementById('confirmDelete').addEventListener('click', async function() {
+  if (!deleteHash) return;
+  await fetch('/api/downloads/' + deleteHash, { method: 'DELETE' });
+  closeConfirm();
+  fetchDownloads();
+});
 
 async function fetchDownloads() {
   try {
-    const r = await fetch(API + '/api/downloads');
-    const list = await r.json();
+    var r = await fetch('/api/downloads');
+    var list = await r.json();
     render(list);
   } catch(e) {}
-}
-
-async function addDownload() {
-  const title = document.getElementById('f-title').value.trim();
-  const magnet = document.getElementById('f-magnet').value.trim();
-  const poster = document.getElementById('f-poster').value.trim();
-  const desc = document.getElementById('f-desc').value.trim();
-  const type = document.getElementById('f-type').value;
-
-  if (!title || !magnet) { alert('Title and magnet required'); return; }
-
-  await fetch(API + '/api/download', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({title, magnet, poster_url: poster, description: desc, type})
-  });
-
-  document.getElementById('f-title').value = '';
-  document.getElementById('f-magnet').value = '';
-  document.getElementById('f-poster').value = '';
-  document.getElementById('f-desc').value = '';
-  fetchDownloads();
-}
-
-async function removeDl(hash) {
-  await fetch(API + '/api/downloads/' + hash, {method: 'DELETE'});
-  fetchDownloads();
 }
 
 setInterval(fetchDownloads, 3000);

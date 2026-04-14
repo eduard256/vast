@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<title>vast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0B0D12;
+  --bg-card: #141620;
+  --bg-elevated: #1A1D2A;
+  --bg-hover: #222538;
+  --border: rgba(255,255,255,0.06);
+  --text: #F0EFF4;
+  --text-secondary: #9392A0;
+  --text-muted: #5E5D6B;
+  --coral: #FB7185;
+  --coral-dim: rgba(251,113,133,0.15);
+  --coral-glow: rgba(251,113,133,0.3);
+  --green: #34D399;
+  --amber: #FBBF24;
+  --red: #F87171;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'Manrope', system-ui, -apple-system, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --tab-height: 64px;
+}
+
+html { -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--tab-height) + var(--safe-bottom));
+}
+
+/* Search header */
+.search-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 12px 20px;
+  background: rgba(11,13,18,0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.search-box {
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+.search-input {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 12px 16px 12px 42px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input::placeholder { color: var(--text-muted); }
+.search-input:focus { border-color: rgba(251,113,133,0.4); }
+.search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.search-clear.visible { display: flex; }
+.search-clear:active { background: var(--bg-hover); }
+
+/* Results grid */
+.results {
+  padding: 16px 20px;
+}
+.results-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 10px;
+}
+.card {
+  text-decoration: none;
+  color: var(--text);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.card-poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+.card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-rating {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.card-rating.high { color: var(--green); }
+.card-rating.mid { color: var(--amber); }
+.card-rating.low { color: var(--red); }
+.card-downloaded {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-downloaded svg { width: 11px; height: 11px; fill: #fff; }
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* Empty / loading states */
+.state-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+.state-empty svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+.state-empty p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.more-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin-top: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.more-btn:active { background: var(--bg-hover); }
+@media (hover: hover) { .more-btn:hover { background: var(--bg-hover); } }
+
+/* Skeleton */
+.skel-poster {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(110deg, var(--bg-card) 30%, var(--bg-elevated) 50%, var(--bg-card) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skel-text { height: 12px; width: 80%; border-radius: 4px; margin-top: 8px; background: var(--bg-card); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Tab bar */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 200;
+  height: calc(var(--tab-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(11,13,18,0.92);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 16px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.tab.active { color: var(--coral); }
+.tab svg { width: 24px; height: 24px; fill: currentColor; }
+
+/* Desktop */
+@media (min-width: 1024px) {
+  :root { --tab-height: 0px; }
+  body { padding-bottom: 0; padding-left: 220px; }
+
+  .tab-bar {
+    top: 0; bottom: 0; right: auto;
+    width: 220px; height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 32px 16px;
+    gap: 4px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+  .tab {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    justify-content: flex-start;
+  }
+  .tab:hover { background: var(--bg-hover); color: var(--text-secondary); }
+  .tab.active { background: var(--coral-dim); }
+  .tab svg { width: 20px; height: 20px; }
+  .tab-bar::before {
+    content: 'vast';
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #FB7185, #F43F5E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 32px;
+    padding: 0 16px;
+  }
+
+  .search-header { padding: 16px 48px; }
+  .results { padding: 16px 48px; }
+  .results-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="search-header">
+  <div class="search-box">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="text" class="search-input" id="searchInput" placeholder="Название фильма..." autocomplete="off" autofocus>
+    <button class="search-clear" id="clearBtn" onclick="clearSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="results" id="results">
+  <div class="state-empty" id="emptyState">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <p>Введите название фильма<br>для поиска в каталоге</p>
+  </div>
+</div>
+
+<nav class="tab-bar">
+  <a href="/" class="tab">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span>Главная</span>
+  </a>
+  <a href="/search.html" class="tab active">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <span>Поиск</span>
+  </a>
+  <a href="/downloads.html" class="tab">
+    <svg viewBox="0 0 24 24"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-5 2v2h10v-2H7z"/></svg>
+    <span>Загрузки</span>
+  </a>
+</nav>
+
+<script>
+var mediaMap = {};
+var searchTimeout = null;
+var currentPage = 1;
+var currentQuery = '';
+var totalPages = 1;
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function ratingClass(r) { return r >= 7 ? 'high' : r >= 5 ? 'mid' : 'low'; }
+
+// Load our media for matching
+fetch('/api/media').then(function(r) { return r.json(); }).then(function(list) {
+  list.forEach(function(m) {
+    if (m.kinopoisk_id) mediaMap[m.kinopoisk_id] = m;
+  });
+}).catch(function() {});
+
+var input = document.getElementById('searchInput');
+var clearBtn = document.getElementById('clearBtn');
+
+input.addEventListener('input', function() {
+  clearBtn.classList.toggle('visible', input.value.length > 0);
+  clearTimeout(searchTimeout);
+  var q = input.value.trim();
+  if (!q) {
+    showEmpty();
+    return;
+  }
+  searchTimeout = setTimeout(function() { doSearch(q, 1); }, 500);
+});
+
+input.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') clearSearch();
+});
+
+function clearSearch() {
+  input.value = '';
+  clearBtn.classList.remove('visible');
+  showEmpty();
+  input.focus();
+}
+
+function showEmpty() {
+  document.getElementById('results').innerHTML =
+    '<div class="state-empty" id="emptyState">' +
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>' +
+    '<p>Введите название фильма<br>для поиска в каталоге</p></div>';
+}
+
+function makeCard(m) {
+  var a = document.createElement('a');
+  a.className = 'card';
+  a.href = '/movie.html?kp_id=' + m.id;
+
+  var poster = m.poster ? (m.poster.previewUrl || m.poster.url) : '';
+  var rating = m.rating ? m.rating.kp : 0;
+  var name = m.name || m.alternativeName || '';
+  var year = m.year || '';
+  var genres = (m.genres || []).map(function(g) { return g.name; }).slice(0,2).join(', ');
+
+  var posterEl = document.createElement('div');
+  posterEl.className = 'card-poster';
+  if (poster) {
+    var img = document.createElement('img');
+    img.src = poster;
+    img.alt = name;
+    img.loading = 'lazy';
+    posterEl.appendChild(img);
+  }
+  if (rating > 0) {
+    var rb = document.createElement('span');
+    rb.className = 'card-rating ' + ratingClass(rating);
+    rb.textContent = rating.toFixed(1);
+    posterEl.appendChild(rb);
+  }
+  if (mediaMap[String(m.id)]) {
+    var dl = document.createElement('div');
+    dl.className = 'card-downloaded';
+    dl.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>';
+    posterEl.appendChild(dl);
+  }
+  a.appendChild(posterEl);
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'card-title';
+  titleEl.textContent = name;
+  a.appendChild(titleEl);
+
+  var sub = document.createElement('div');
+  sub.className = 'card-sub';
+  sub.textContent = year + (genres ? ' \u00b7 ' + genres : '');
+  a.appendChild(sub);
+
+  return a;
+}
+
+async function doSearch(query, page) {
+  currentQuery = query;
+  currentPage = page;
+
+  var results = document.getElementById('results');
+
+  if (page === 1) {
+    results.innerHTML = '<div class="results-count">Поиск...</div><div class="results-grid" id="grid"></div>';
+    var grid = document.getElementById('grid');
+    for (var i = 0; i < 9; i++) {
+      var sk = document.createElement('div');
+      sk.innerHTML = '<div class="skel-poster"></div><div class="skel-text"></div>';
+      grid.appendChild(sk);
+    }
+  }
+
+  try {
+    var resp = await fetch('/api/kinopoisk/search?query=' + encodeURIComponent(query) + '&page=' + page + '&limit=20');
+    var data = await resp.json();
+
+    if (page === 1) {
+      results.innerHTML = '';
+      var count = document.createElement('div');
+      count.className = 'results-count';
+      count.textContent = 'Результаты по запросу: ' + query;
+      results.appendChild(count);
+
+      var grid = document.createElement('div');
+      grid.className = 'results-grid';
+      grid.id = 'grid';
+      results.appendChild(grid);
+    }
+
+    var grid = document.getElementById('grid');
+    (data.docs || []).forEach(function(m) {
+      grid.appendChild(makeCard(m));
+    });
+
+    totalPages = data.pages || 1;
+
+    // remove old more btn
+    var old = results.querySelector('.more-btn');
+    if (old) old.remove();
+
+    if (data.page < totalPages) {
+      var btn = document.createElement('button');
+      btn.className = 'more-btn';
+      btn.textContent = 'Показать ещё';
+      btn.onclick = function() { doSearch(query, page + 1); };
+      results.appendChild(btn);
+    }
+
+    if ((data.docs || []).length === 0 && page === 1) {
+      results.innerHTML = '<div class="state-empty"><p>Ничего не найдено</p></div>';
+    }
+  } catch(e) {
+    if (page === 1) {
+      results.innerHTML = '<div class="state-empty"><p>Ошибка загрузки</p></div>';
+    }
+  }
+}
+</script>
+</body>
+</html>
