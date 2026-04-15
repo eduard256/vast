@@ -430,10 +430,13 @@ body {
   background: var(--coral-dim);
 }
 .sheet__opt-icon--local svg { fill: var(--coral); }
-.sheet__opt-icon--atv {
-  background: rgba(255,255,255,0.06);
+.sheet__opt-icon--lgtv {
+  background: rgba(168,85,247,0.12);
 }
-.sheet__opt-icon--atv svg { fill: var(--text); }
+.sheet__opt-icon--lgtv svg { fill: #A855F7; }
+.sheet__opt--sending .sheet__opt-icon--lgtv {
+  animation: sendPulse 1.2s ease-in-out infinite;
+}
 .sheet__opt-text { flex: 1; }
 .sheet__opt-label {
   font-weight: 700;
@@ -451,10 +454,7 @@ body {
 .sheet__opt--sending .sheet__opt-label {
   color: var(--text-secondary);
 }
-.sheet__opt--sending .sheet__opt-icon--atv {
-  animation: atvPulse 1.2s ease-in-out infinite;
-}
-@keyframes atvPulse {
+@keyframes sendPulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
@@ -491,13 +491,31 @@ body {
           <div class="sheet__opt-sub">Браузер</div>
         </div>
       </a>
-      <div class="sheet__opt" id="sheetATV">
-        <div class="sheet__opt-icon sheet__opt-icon--atv">
-          <svg viewBox="0 0 24 24"><path d="M18 2H6C4.9 2 4 2.9 4 4v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6V4h12v12zM8.5 21h7c.28 0 .5-.22.5-.5s-.22-.5-.5-.5h-7c-.28 0-.5.22-.5.5s.22.5.5.5z"/><path d="M10 8v4l3.5-2z"/></svg>
+      <div class="sheet__opt sheet__opt--lgtv" data-tv="kitchen">
+        <div class="sheet__opt-icon sheet__opt-icon--lgtv">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
         </div>
         <div class="sheet__opt-text">
-          <div class="sheet__opt-label">Apple TV</div>
-          <div class="sheet__opt-sub" id="sheetATVSub">AirPlay</div>
+          <div class="sheet__opt-label">Кухня</div>
+          <div class="sheet__opt-sub">LG TV</div>
+        </div>
+      </div>
+      <div class="sheet__opt sheet__opt--lgtv" data-tv="vadim">
+        <div class="sheet__opt-icon sheet__opt-icon--lgtv">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+        </div>
+        <div class="sheet__opt-text">
+          <div class="sheet__opt-label">Комната Вадима</div>
+          <div class="sheet__opt-sub">LG TV</div>
+        </div>
+      </div>
+      <div class="sheet__opt sheet__opt--lgtv" data-tv="gym">
+        <div class="sheet__opt-icon sheet__opt-icon--lgtv">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+        </div>
+        <div class="sheet__opt-text">
+          <div class="sheet__opt-label">Спортзал</div>
+          <div class="sheet__opt-sub">LG TV</div>
         </div>
       </div>
     </div>
@@ -885,8 +903,10 @@ var pickerMediaId = null;
 function openDevicePicker(id) {
   pickerMediaId = id;
   document.getElementById('sheetLocal').href = '/player.html?id=' + id;
-  document.getElementById('sheetATVSub').textContent = 'AirPlay';
-  document.getElementById('sheetATV').classList.remove('sheet__opt--sending');
+  document.querySelectorAll('.sheet__opt--lgtv').forEach(function(btn) {
+    btn.classList.remove('sheet__opt--sending');
+    btn.querySelector('.sheet__opt-sub').textContent = 'LG TV';
+  });
   document.getElementById('sheetOverlay').classList.add('visible');
 }
 
@@ -899,24 +919,25 @@ document.getElementById('sheetOverlay').addEventListener('click', function(e) {
   if (e.target === this) closeDevicePicker();
 });
 
-document.getElementById('sheetATV').addEventListener('click', function() {
-  if (!pickerMediaId) return;
-  var btn = this;
-  btn.classList.add('sheet__opt--sending');
-  document.getElementById('sheetATVSub').textContent = 'Отправка...';
+document.querySelectorAll('.sheet__opt--lgtv').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    if (!pickerMediaId) return;
+    var tv = btn.dataset.tv;
+    var sub = btn.querySelector('.sheet__opt-sub');
+    btn.classList.add('sheet__opt--sending');
+    sub.textContent = 'Включение...';
 
-  fetch('/api/appletv/play/' + pickerMediaId, { method: 'POST' })
-    .then(function(r) {
-      if (!r.ok) throw new Error('failed');
-      closeDevicePicker();
-    })
-    .catch(function() {
-      document.getElementById('sheetATVSub').textContent = 'Ошибка';
-      btn.classList.remove('sheet__opt--sending');
-      setTimeout(function() {
-        document.getElementById('sheetATVSub').textContent = 'AirPlay';
-      }, 2000);
-    });
+    fetch('/api/lgtv/play/' + pickerMediaId + '?tv=' + tv, { method: 'POST' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('failed');
+        closeDevicePicker();
+      })
+      .catch(function() {
+        sub.textContent = 'Ошибка';
+        btn.classList.remove('sheet__opt--sending');
+        setTimeout(function() { sub.textContent = 'LG TV'; }, 2000);
+      });
+  });
 });
 
 function startProgressPoll(id) {

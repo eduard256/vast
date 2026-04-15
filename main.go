@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/eduard256/vast/internal/api"
-	"github.com/eduard256/vast/internal/appletv"
+	"github.com/eduard256/vast/internal/lgtv"
 	"github.com/eduard256/vast/internal/download"
 	"github.com/eduard256/vast/internal/kinopoisk"
 	"github.com/eduard256/vast/internal/media"
@@ -36,7 +36,7 @@ func main() {
 		{"media", media.Init},
 		{"kinopoisk", kinopoisk.Init},
 		{"torrentsearch", torrentsearch.Init},
-		{"appletv", appletv.Init},
+		{"lgtv", lgtv.Init},
 	}
 
 	for _, m := range modules {
