@@ -17,6 +17,7 @@ type Job struct {
 	MediaID      int
 	Input        string
 	Output       string // directory for HLS output
+	Title        string // metadata title for HLS segments
 	Status       string // "transcoding", "done", "error"
 	AudioPercent float64
 	VideoPercent float64
@@ -31,13 +32,14 @@ var (
 	timeRe = regexp.MustCompile(`(\d+):(\d+):(\d+)\.(\d+)`)
 )
 
-func Start(mediaID int, input, outDir string, onDone func(error)) {
+func Start(mediaID int, input, outDir, title string, onDone func(error)) {
 	os.MkdirAll(outDir, 0755)
 
 	job := &Job{
 		MediaID: mediaID,
 		Input:   input,
 		Output:  outDir,
+		Title:   title,
 		Status:  "transcoding",
 	}
 
@@ -400,6 +402,10 @@ func muxHLS(job *Job, info probeInfo, audioFile string, needVideoEncode bool) er
 	}
 
 	args = append(args, "-c:a", "copy")
+
+	if job.Title != "" {
+		args = append(args, "-metadata", "title="+job.Title)
+	}
 
 	args = append(args,
 		"-sn",

@@ -198,8 +198,13 @@ func waitComplete(hash string, mediaID int) {
 
 	log.Printf("[download] transcoding: %s", inputFile)
 
+	// Get media title for HLS metadata
+	var mediaTitle string
+	db.Conn().QueryRow(`SELECT title FROM media WHERE id = ?`, mediaID).Scan(&mediaTitle)
+	hlsTitle := fmt.Sprintf("%s #[%d]", mediaTitle, mediaID)
+
 	outDir := hls.HLSDir(dataDir, mediaID)
-	hls.Start(mediaID, inputFile, outDir, func(err error) {
+	hls.Start(mediaID, inputFile, outDir, hlsTitle, func(err error) {
 		if err != nil {
 			log.Printf("[download] transcode error: %v", err)
 			db.Conn().Exec(`UPDATE media SET status = 'error' WHERE id = ?`, mediaID)

@@ -471,6 +471,73 @@ body {
 }
 
 /* ============================================
+   DELETE BUTTON
+   ============================================ */
+.delete-section {
+  width: 100%;
+  margin-top: 48px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeSlideIn 0.4s ease 0.75s forwards;
+}
+.delete-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.15);
+  border-radius: var(--radius);
+  color: var(--red);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.delete-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+.delete-btn:active {
+  transform: scale(0.98);
+  background: rgba(248,113,113,0.15);
+}
+@media (hover: hover) {
+  .delete-btn:hover {
+    background: rgba(248,113,113,0.12);
+    border-color: rgba(248,113,113,0.25);
+  }
+}
+.delete-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+/* Confirm state */
+.delete-btn--confirm {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.delete-btn--confirm:active {
+  background: #ef4444;
+}
+@media (hover: hover) {
+  .delete-btn--confirm:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+  }
+}
+
+/* ============================================
    TOAST
    ============================================ */
 .toast {
@@ -606,6 +673,14 @@ body {
       <div class="device__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
     </div>
 
+  </div>
+
+  <!-- Delete -->
+  <div class="delete-section">
+    <button class="delete-btn" id="deleteBtn">
+      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      Удалить фильм
+    </button>
   </div>
 
   <!-- Save position -->
@@ -817,6 +892,47 @@ document.getElementById('posSave').addEventListener('click', function() {
         btn.disabled = false;
         btn.textContent = 'Сохранить';
       }, 1500);
+    });
+});
+
+// ===========================================
+// Delete media
+// ===========================================
+var deleteBtn = document.getElementById('deleteBtn');
+var deleteConfirm = false;
+var deleteTimer = null;
+
+deleteBtn.addEventListener('click', function() {
+  if (!deleteConfirm) {
+    // first click: ask for confirmation
+    deleteConfirm = true;
+    deleteBtn.classList.add('delete-btn--confirm');
+    deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Точно удалить?';
+    deleteTimer = setTimeout(function() {
+      deleteConfirm = false;
+      deleteBtn.classList.remove('delete-btn--confirm');
+      deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Удалить фильм';
+    }, 3000);
+    return;
+  }
+
+  // second click: delete
+  clearTimeout(deleteTimer);
+  deleteBtn.disabled = true;
+  deleteBtn.textContent = 'Удаление...';
+
+  fetch('/api/media/' + mediaId, { method: 'DELETE' })
+    .then(function(r) {
+      if (!r.ok) throw new Error('failed');
+      showToast('Фильм удален');
+      setTimeout(function() { window.location.href = '/'; }, 600);
+    })
+    .catch(function() {
+      deleteBtn.disabled = false;
+      deleteConfirm = false;
+      deleteBtn.classList.remove('delete-btn--confirm');
+      deleteBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Удалить фильм';
+      showToast('Ошибка удаления');
     });
 });
 

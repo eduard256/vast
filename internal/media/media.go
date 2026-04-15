@@ -198,15 +198,32 @@ func apiMediaAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiMediaByID(w http.ResponseWriter, r *http.Request, id int) {
-	var m Media
-	err := db.Conn().QueryRow(
-		`SELECT id, title, alt_name, description, poster_url, backdrop_url, year, kinopoisk_id, tmdb_id, rating_kp, rating_imdb, genres, type, status, hls_path, torrent_title, torrent_size, torrent_tracker, torrent_seeders, created_at FROM media WHERE id = ?`, id,
-	).Scan(&m.ID, &m.Title, &m.AltName, &m.Description, &m.PosterURL, &m.BackdropURL, &m.Year, &m.KinopoiskID, &m.TmdbID, &m.RatingKP, &m.RatingIMDB, &m.Genres, &m.Type, &m.Status, &m.HLSPath, &m.TorrentTitle, &m.TorrentSize, &m.TorrentTracker, &m.TorrentSeeders, &m.CreatedAt)
-	if err == sql.ErrNoRows {
-		api.Error(w, errors.New("not found"), http.StatusNotFound)
-		return
+	switch r.Method {
+	case "GET":
+		var m Media
+		err := db.Conn().QueryRow(
+			`SELECT id, title, alt_name, description, poster_url, backdrop_url, year, kinopoisk_id, tmdb_id, rating_kp, rating_imdb, genres, type, status, hls_path, torrent_title, torrent_size, torrent_tracker, torrent_seeders, created_at FROM media WHERE id = ?`, id,
+		).Scan(&m.ID, &m.Title, &m.AltName, &m.Description, &m.PosterURL, &m.BackdropURL, &m.Year, &m.KinopoiskID, &m.TmdbID, &m.RatingKP, &m.RatingIMDB, &m.Genres, &m.Type, &m.Status, &m.HLSPath, &m.TorrentTitle, &m.TorrentSize, &m.TorrentTracker, &m.TorrentSeeders, &m.CreatedAt)
+		if err == sql.ErrNoRows {
+			api.Error(w, errors.New("not found"), http.StatusNotFound)
+			return
+		}
+		api.Response(w, m)
+
+	case "DELETE":
+		// delete HLS files
+		os.RemoveAll(filepath.Join(dataDir, "hls", strconv.Itoa(id)))
+
+		// delete from database
+		db.Conn().Exec(`DELETE FROM watch_position WHERE media_id = ?`, id)
+		db.Conn().Exec(`DELETE FROM episodes WHERE media_id = ?`, id)
+		db.Conn().Exec(`DELETE FROM media WHERE id = ?`, id)
+
+		api.Response(w, map[string]string{"status": "ok"})
+
+	default:
+		api.Error(w, errors.New("method not allowed"), http.StatusMethodNotAllowed)
 	}
-	api.Response(w, m)
 }
 
 func apiEpisodes(w http.ResponseWriter, r *http.Request, mediaID int) {
