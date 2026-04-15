@@ -22,7 +22,7 @@ func Init() {
 	api.HandleFunc("api/appletv/off/", apiOff)
 }
 
-// POST /api/appletv/play/{id}?tv=hall
+// POST /api/appletv/play/{id}?tv=hall&position=1228
 func apiPlay(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		api.Error(w, fmt.Errorf("method not allowed"), http.StatusMethodNotAllowed)
@@ -36,7 +36,15 @@ func apiPlay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := fmt.Sprintf(`{"tv":"%s","channel_id":%s}`, tv, id)
+	position := r.URL.Query().Get("position")
+
+	var body string
+	if position != "" && position != "0" {
+		body = fmt.Sprintf(`{"tv":"%s","channel_id":%s,"position":%s}`, tv, id, position)
+	} else {
+		body = fmt.Sprintf(`{"tv":"%s","channel_id":%s}`, tv, id)
+	}
+
 	resp, err := http.Post(apiBase+"/tv/play", "application/json", strings.NewReader(body))
 	if err != nil {
 		api.Error(w, err, http.StatusBadGateway)

@@ -441,124 +441,6 @@ body {
   background: var(--coral);
 }
 
-/* ============================================
-   DEVICE PICKER (bottom sheet)
-   ============================================ */
-.sheet-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 500;
-  background: rgba(0,0,0,0);
-  visibility: hidden;
-  transition: background 0.35s, visibility 0s 0.35s;
-}
-.sheet-overlay.visible {
-  background: rgba(0,0,0,0.6);
-  visibility: visible;
-  transition: background 0.35s, visibility 0s;
-}
-.sheet {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg-elevated);
-  border-top: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px 20px 0 0;
-  padding: 0 20px calc(20px + var(--safe-bottom));
-  transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.sheet-overlay.visible .sheet {
-  transform: translateY(0);
-}
-.sheet__handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.15);
-  margin: 10px auto 18px;
-}
-.sheet__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 14px;
-  text-align: center;
-}
-.sheet__options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.sheet__opt {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
-  text-decoration: none;
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.sheet__opt:active { transform: scale(0.98); }
-@media (hover: hover) {
-  .sheet__opt:hover {
-    background: rgba(255,255,255,0.07);
-    border-color: rgba(255,255,255,0.1);
-  }
-}
-.sheet__opt-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.sheet__opt-icon svg { width: 22px; height: 22px; }
-.sheet__opt-icon--local {
-  background: var(--coral-dim);
-}
-.sheet__opt-icon--local svg { fill: var(--coral); }
-.sheet__opt-icon--lgtv {
-  background: rgba(168,85,247,0.12);
-}
-.sheet__opt-icon--lgtv svg { fill: #A855F7; }
-.sheet__opt--sending .sheet__opt-icon--lgtv {
-  animation: sendPulse 1.2s ease-in-out infinite;
-}
-.sheet__opt-text { flex: 1; }
-.sheet__opt-label {
-  font-weight: 700;
-  font-size: 14px;
-  margin-bottom: 2px;
-}
-.sheet__opt-sub {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-.sheet__opt--sending {
-  pointer-events: none;
-}
-.sheet__opt--sending .sheet__opt-label {
-  color: var(--text-secondary);
-}
-@keyframes sendPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
 
 /* ============================================
    TOAST
@@ -734,52 +616,6 @@ body {
   </section>
 </div>
 
-<!-- Device picker sheet -->
-<div class="sheet-overlay" id="sheetOverlay">
-  <div class="sheet">
-    <div class="sheet__handle"></div>
-    <div class="sheet__title">Где смотреть</div>
-    <div class="sheet__options">
-      <a class="sheet__opt" id="sheetLocal" href="#">
-        <div class="sheet__opt-icon sheet__opt-icon--local">
-          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-        </div>
-        <div class="sheet__opt-text">
-          <div class="sheet__opt-label">Это устройство</div>
-          <div class="sheet__opt-sub">Браузер</div>
-        </div>
-      </a>
-      <div class="sheet__opt sheet__opt--lgtv" data-tv="kitchen">
-        <div class="sheet__opt-icon sheet__opt-icon--lgtv">
-          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-        </div>
-        <div class="sheet__opt-text">
-          <div class="sheet__opt-label">Кухня</div>
-          <div class="sheet__opt-sub">LG TV</div>
-        </div>
-      </div>
-      <div class="sheet__opt sheet__opt--lgtv" data-tv="vadim">
-        <div class="sheet__opt-icon sheet__opt-icon--lgtv">
-          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-        </div>
-        <div class="sheet__opt-text">
-          <div class="sheet__opt-label">Комната Вадима</div>
-          <div class="sheet__opt-sub">LG TV</div>
-        </div>
-      </div>
-      <div class="sheet__opt sheet__opt--lgtv" data-tv="gym">
-        <div class="sheet__opt-icon sheet__opt-icon--lgtv">
-          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
-        </div>
-        <div class="sheet__opt-text">
-          <div class="sheet__opt-label">Спортзал</div>
-          <div class="sheet__opt-sub">LG TV</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -876,7 +712,7 @@ function makeMediaCard(m) {
     a.href = '#';
     a.addEventListener('click', function(e) {
       e.preventDefault();
-      openDevicePicker(m.id, m.title);
+      openDevicePicker(m.id, m.title, m.poster_url);
     });
   } else {
     a.href = '/movie.html?media_id=' + m.id;
@@ -1072,46 +908,14 @@ function pollDownloads() {
 }
 
 // ===========================================
-// Device picker
+// Open device picker (redirects to open.html)
 // ===========================================
-var pickerMediaId = null;
-
-function openDevicePicker(id, title) {
-  pickerMediaId = id;
-  document.getElementById('sheetLocal').href = '/player.html?id=' + id;
-  document.getElementById('sheetOverlay').classList.add('visible');
+function openDevicePicker(id, title, poster) {
+  var params = new URLSearchParams({ id: id });
+  if (title) params.set('title', title);
+  if (poster) params.set('poster', poster);
+  window.location.href = '/open.html?' + params.toString();
 }
-
-function closeDevicePicker() {
-  document.getElementById('sheetOverlay').classList.remove('visible');
-  pickerMediaId = null;
-}
-
-document.getElementById('sheetOverlay').addEventListener('click', function(e) {
-  if (e.target === this) closeDevicePicker();
-});
-
-document.querySelectorAll('.sheet__opt--lgtv').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    if (!pickerMediaId) return;
-    var tv = btn.dataset.tv;
-    var sub = btn.querySelector('.sheet__opt-sub');
-    btn.classList.add('sheet__opt--sending');
-    sub.textContent = 'Включение...';
-
-    fetch('/api/lgtv/play/' + pickerMediaId + '?tv=' + tv, { method: 'POST' })
-      .then(function(r) {
-        if (!r.ok) throw new Error('failed');
-        closeDevicePicker();
-        showToast('Запущено на LG TV');
-      })
-      .catch(function() {
-        sub.textContent = 'Ошибка';
-        btn.classList.remove('sheet__opt--sending');
-        setTimeout(function() { sub.textContent = 'LG TV'; }, 2000);
-      });
-  });
-});
 
 function showToast(msg) {
   var t = document.getElementById('toast');

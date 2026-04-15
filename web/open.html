@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-192.svg">
+<title>vast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0B0D12;
+  --bg-card: #141620;
+  --bg-elevated: #1A1D2A;
+  --bg-hover: #222538;
+  --border: rgba(255,255,255,0.06);
+  --text: #F0EFF4;
+  --text-secondary: #9392A0;
+  --text-muted: #5E5D6B;
+  --coral: #FB7185;
+  --coral-dim: rgba(251,113,133,0.15);
+  --coral-glow: rgba(251,113,133,0.3);
+  --green: #34D399;
+  --green-dim: rgba(52,211,153,0.12);
+  --amber: #FBBF24;
+  --blue: #60A5FA;
+  --blue-dim: rgba(96,165,250,0.12);
+  --red: #F87171;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: 'Manrope', system-ui, -apple-system, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --purple: #A855F7;
+  --purple-dim: rgba(168,85,247,0.12);
+  --indigo: #6366F1;
+  --indigo-dim: rgba(99,102,241,0.12);
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   BACKDROP -- blurred poster background
+   ============================================ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.backdrop__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(40px) saturate(1.4) brightness(0.35);
+  transform: scale(1.2);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.backdrop__img.loaded {
+  opacity: 1;
+}
+.backdrop__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgba(11,13,18,0.5) 0%,
+      rgba(11,13,18,0.3) 30%,
+      rgba(11,13,18,0.6) 70%,
+      rgba(11,13,18,0.95) 100%
+    );
+}
+.backdrop__noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+.page {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
+  max-width: 440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Back button */
+.back-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 8px 14px 8px 10px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.back-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+.back-btn:active {
+  background: rgba(255,255,255,0.14);
+  color: var(--text);
+}
+@media (hover: hover) {
+  .back-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: var(--text);
+  }
+}
+
+/* ============================================
+   MEDIA HEADER -- poster + title
+   ============================================ */
+.media-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 32px;
+  margin-bottom: 36px;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: fadeSlideIn 0.5s ease 0.15s forwards;
+}
+.poster {
+  width: 140px;
+  height: 210px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.5),
+    0 2px 8px rgba(0,0,0,0.3);
+  background: var(--bg-card);
+  flex-shrink: 0;
+  position: relative;
+}
+.poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.poster img.loaded {
+  opacity: 1;
+}
+.poster__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.poster__placeholder svg {
+  width: 36px;
+  height: 36px;
+  fill: var(--text-muted);
+  opacity: 0.4;
+}
+.media-title {
+  margin-top: 18px;
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ============================================
+   SECTION LABEL
+   ============================================ */
+.section-label {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeSlideIn 0.4s ease 0.25s forwards;
+}
+
+/* ============================================
+   DEVICE CARDS
+   ============================================ */
+.devices {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.device {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: fadeSlideIn 0.45s ease forwards;
+}
+.device:nth-child(1) { animation-delay: 0.3s; }
+.device:nth-child(2) { animation-delay: 0.37s; }
+.device:nth-child(3) { animation-delay: 0.44s; }
+.device:nth-child(4) { animation-delay: 0.51s; }
+.device:nth-child(5) { animation-delay: 0.58s; }
+
+.device:active {
+  transform: scale(0.98) !important;
+  background: rgba(255,255,255,0.09);
+}
+@media (hover: hover) {
+  .device:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.1);
+  }
+}
+
+.device__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.device__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.device__icon--local {
+  background: var(--coral-dim);
+}
+.device__icon--local svg { fill: var(--coral); }
+
+.device__icon--lgtv {
+  background: var(--purple-dim);
+}
+.device__icon--lgtv svg { fill: var(--purple); }
+
+.device__icon--appletv {
+  background: var(--indigo-dim);
+}
+.device__icon--appletv svg { fill: var(--indigo); }
+
+.device__info {
+  flex: 1;
+  min-width: 0;
+}
+.device__name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.device__type {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.device__arrow {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.25;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.device__arrow svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text);
+}
+@media (hover: hover) {
+  .device:hover .device__arrow {
+    opacity: 0.5;
+    transform: translateX(2px);
+  }
+}
+
+/* Sending state */
+.device--sending {
+  pointer-events: none;
+}
+.device--sending .device__name {
+  color: var(--text-secondary);
+}
+.device--sending .device__type {
+  color: var(--coral);
+  font-weight: 600;
+}
+.device--sending .device__icon {
+  animation: iconPulse 1.2s ease-in-out infinite;
+}
+.device--sending .device__arrow {
+  opacity: 0;
+}
+
+/* Error state */
+.device--error .device__type {
+  color: var(--red);
+}
+
+/* ============================================
+   SAVE POSITION
+   ============================================ */
+.position-section {
+  width: 100%;
+  margin-top: 32px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeSlideIn 0.4s ease 0.65s forwards;
+}
+.position-current {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.position-current span {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.position-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.position-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  padding: 0 4px;
+  transition: border-color 0.2s;
+}
+.position-inputs:focus-within {
+  border-color: rgba(255,255,255,0.18);
+}
+.position-inputs input {
+  width: 48px;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px 2px;
+  -moz-appearance: textfield;
+}
+.position-inputs input::-webkit-outer-spin-button,
+.position-inputs input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.position-inputs input::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.position-sep {
+  color: var(--text-muted);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+.position-save {
+  background: var(--coral);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.position-save:active {
+  transform: scale(0.96);
+}
+.position-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+@media (hover: hover) {
+  .position-save:not(:disabled):hover {
+    opacity: 0.85;
+  }
+}
+
+/* ============================================
+   TOAST
+   ============================================ */
+.toast {
+  position: fixed;
+  bottom: calc(24px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.7; }
+}
+</style>
+</head>
+<body>
+
+<!-- Blurred poster backdrop -->
+<div class="backdrop">
+  <img class="backdrop__img" id="backdropImg" alt="">
+  <div class="backdrop__overlay"></div>
+  <div class="backdrop__noise"></div>
+</div>
+
+<!-- Main content -->
+<div class="page">
+
+  <!-- Back -->
+  <a class="back-btn" id="backBtn" href="/">
+    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    Назад
+  </a>
+
+  <!-- Media header -->
+  <div class="media-header">
+    <div class="poster" id="poster">
+      <div class="poster__placeholder">
+        <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+      </div>
+    </div>
+    <div class="media-title" id="mediaTitle"></div>
+  </div>
+
+  <!-- Device list -->
+  <div class="section-label">Где смотреть</div>
+
+  <div class="devices">
+
+    <!-- This device (browser) -->
+    <a class="device" id="deviceLocal" href="#">
+      <div class="device__icon device__icon--local">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+      </div>
+      <div class="device__info">
+        <div class="device__name">Это устройство</div>
+        <div class="device__type">Браузер</div>
+      </div>
+      <div class="device__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+    </a>
+
+    <!-- Kitchen LG TV -->
+    <div class="device" data-tv="kitchen" data-type="lgtv">
+      <div class="device__icon device__icon--lgtv">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+      </div>
+      <div class="device__info">
+        <div class="device__name">Кухня</div>
+        <div class="device__type">LG TV</div>
+      </div>
+      <div class="device__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+    </div>
+
+    <!-- Vadim's room LG TV -->
+    <div class="device" data-tv="vadim" data-type="lgtv">
+      <div class="device__icon device__icon--lgtv">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+      </div>
+      <div class="device__info">
+        <div class="device__name">Комната Вадима</div>
+        <div class="device__type">LG TV</div>
+      </div>
+      <div class="device__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+    </div>
+
+    <!-- Gym LG TV -->
+    <div class="device" data-tv="gym" data-type="lgtv">
+      <div class="device__icon device__icon--lgtv">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+      </div>
+      <div class="device__info">
+        <div class="device__name">Спортзал</div>
+        <div class="device__type">LG TV</div>
+      </div>
+      <div class="device__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+    </div>
+
+    <!-- Hall Apple TV -->
+    <div class="device" data-tv="hall" data-type="appletv">
+      <div class="device__icon device__icon--appletv">
+        <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      </div>
+      <div class="device__info">
+        <div class="device__name">Зал</div>
+        <div class="device__type">Apple TV</div>
+      </div>
+      <div class="device__arrow"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+    </div>
+
+  </div>
+
+  <!-- Save position -->
+  <div class="position-section">
+    <div class="section-label">Сохранить позицию</div>
+    <div class="position-current" id="positionCurrent"></div>
+    <div class="position-form">
+      <div class="position-inputs">
+        <input type="number" id="posH" min="0" max="99" placeholder="0" inputmode="numeric">
+        <span class="position-sep">:</span>
+        <input type="number" id="posM" min="0" max="59" placeholder="00" inputmode="numeric">
+        <span class="position-sep">:</span>
+        <input type="number" id="posS" min="0" max="59" placeholder="00" inputmode="numeric">
+      </div>
+      <button class="position-save" id="posSave">Сохранить</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===========================================
+// Parse URL parameters
+// ===========================================
+var params = new URLSearchParams(window.location.search);
+var mediaId = params.get('id');
+var mediaTitle = params.get('title') || '';
+var mediaPoster = params.get('poster') || '';
+
+// If no media ID, redirect back to home
+if (!mediaId) {
+  window.location.href = '/';
+}
+
+// ===========================================
+// Populate page content
+// ===========================================
+
+// Title
+document.getElementById('mediaTitle').textContent = mediaTitle;
+document.title = mediaTitle ? mediaTitle + ' — vast' : 'vast';
+
+// Poster
+if (mediaPoster) {
+  var posterEl = document.getElementById('poster');
+  var img = document.createElement('img');
+  img.src = mediaPoster;
+  img.alt = mediaTitle;
+  img.onload = function() { img.classList.add('loaded'); };
+  posterEl.appendChild(img);
+
+  // Backdrop
+  var bdImg = document.getElementById('backdropImg');
+  bdImg.src = mediaPoster;
+  bdImg.onload = function() { bdImg.classList.add('loaded'); };
+} else {
+  // No poster: hide the poster container, keep title
+  document.getElementById('poster').style.display = 'none';
+}
+
+// Back button: try to go back in history, fallback to home
+document.getElementById('backBtn').addEventListener('click', function(e) {
+  e.preventDefault();
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.href = '/';
+  }
+});
+
+// "This device" link goes to player
+document.getElementById('deviceLocal').href = '/player.html?id=' + mediaId;
+
+// ===========================================
+// TV device handlers
+// ===========================================
+document.querySelectorAll('.device[data-tv]').forEach(function(card) {
+  card.addEventListener('click', function() {
+    if (card.classList.contains('device--sending')) return;
+
+    var tv = card.dataset.tv;
+    var type = card.dataset.type;
+    var typeLabel = card.querySelector('.device__type');
+    var originalText = typeLabel.textContent;
+
+    // Determine API endpoint
+    var endpoint = type === 'appletv'
+      ? '/api/appletv/play/' + mediaId + '?tv=' + tv + (savedPosition > 0 ? '&position=' + savedPosition : '')
+      : '/api/lgtv/play/' + mediaId + '?tv=' + tv;
+
+    // Sending state
+    card.classList.add('device--sending');
+    typeLabel.textContent = 'Включение...';
+
+    fetch(endpoint, { method: 'POST' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('failed');
+        showToast('Запущено на ' + originalText);
+        // Brief delay then go back
+        setTimeout(function() {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = '/';
+          }
+        }, 800);
+      })
+      .catch(function() {
+        card.classList.remove('device--sending');
+        card.classList.add('device--error');
+        typeLabel.textContent = 'Ошибка';
+        setTimeout(function() {
+          card.classList.remove('device--error');
+          typeLabel.textContent = originalText;
+        }, 2500);
+      });
+  });
+});
+
+// ===========================================
+// Save position
+// ===========================================
+function formatTime(sec) {
+  var h = Math.floor(sec / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = Math.floor(sec % 60);
+  return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+// Load current saved position
+var savedPosition = 0;
+var savedDuration = 0;
+fetch('/api/media/' + mediaId + '/position')
+  .then(function(r) { return r.json(); })
+  .then(function(pos) {
+    var cur = document.getElementById('positionCurrent');
+    if (pos.position_sec > 0) {
+      cur.innerHTML = 'Сейчас: <span>' + formatTime(pos.position_sec) + '</span>' +
+        (pos.duration_sec > 0 ? ' / ' + formatTime(pos.duration_sec) : '');
+      savedPosition = Math.floor(pos.position_sec);
+      savedDuration = pos.duration_sec || 0;
+      // Pre-fill inputs with current position
+      var h = Math.floor(pos.position_sec / 3600);
+      var m = Math.floor((pos.position_sec % 3600) / 60);
+      var s = Math.floor(pos.position_sec % 60);
+      document.getElementById('posH').value = h;
+      document.getElementById('posM').value = String(m).padStart(2, '0');
+      document.getElementById('posS').value = String(s).padStart(2, '0');
+    } else {
+      cur.textContent = 'Позиция не сохранена';
+    }
+  })
+  .catch(function() {});
+
+// Auto-advance: when input is filled, move focus to next field
+document.getElementById('posH').addEventListener('input', function() {
+  if (this.value.length >= 1 && parseInt(this.value) > 0) {
+    document.getElementById('posM').focus();
+    document.getElementById('posM').select();
+  }
+});
+document.getElementById('posM').addEventListener('input', function() {
+  if (this.value.length >= 2) {
+    document.getElementById('posS').focus();
+    document.getElementById('posS').select();
+  }
+});
+
+// Save button
+document.getElementById('posSave').addEventListener('click', function() {
+  var h = parseInt(document.getElementById('posH').value) || 0;
+  var m = parseInt(document.getElementById('posM').value) || 0;
+  var s = parseInt(document.getElementById('posS').value) || 0;
+  var totalSec = h * 3600 + m * 60 + s;
+
+  if (totalSec <= 0) return;
+
+  var btn = document.getElementById('posSave');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  fetch('/api/media/' + mediaId + '/position', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      position_sec: totalSec,
+      duration_sec: savedDuration
+    })
+  })
+    .then(function(r) {
+      if (!r.ok) throw new Error('failed');
+      btn.textContent = 'Готово';
+      showToast('Позиция сохранена: ' + formatTime(totalSec));
+      // Update current display
+      var cur = document.getElementById('positionCurrent');
+      cur.innerHTML = 'Сейчас: <span>' + formatTime(totalSec) + '</span>' +
+        (savedDuration > 0 ? ' / ' + formatTime(savedDuration) : '');
+      setTimeout(function() {
+        btn.disabled = false;
+        btn.textContent = 'Сохранить';
+      }, 1500);
+    })
+    .catch(function() {
+      btn.textContent = 'Ошибка';
+      setTimeout(function() {
+        btn.disabled = false;
+        btn.textContent = 'Сохранить';
+      }, 1500);
+    });
+});
+
+// ===========================================
+// Toast notification
+// ===========================================
+var toastTimer = null;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() {
+    t.classList.remove('visible');
+  }, 2500);
+}
+</script>
+</body>
+</html>
