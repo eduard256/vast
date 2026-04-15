@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/eduard256/vast/internal/api"
+	"github.com/eduard256/vast/internal/appletv"
 	"github.com/eduard256/vast/internal/lgtv"
 	"github.com/eduard256/vast/internal/download"
 	"github.com/eduard256/vast/internal/kinopoisk"
@@ -37,6 +38,7 @@ func main() {
 		{"kinopoisk", kinopoisk.Init},
 		{"torrentsearch", torrentsearch.Init},
 		{"lgtv", lgtv.Init},
+		{"appletv", appletv.Init},
 	}
 
 	for _, m := range modules {
