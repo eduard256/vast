@@ -21,15 +21,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-html {
-  /* Prevent white bar at bottom in iOS PWA standalone mode:
-     black-translucent shifts content up by safe-area-inset-top,
-     leaving a gap at the bottom that needs to be filled */
-  min-height: calc(100% + env(safe-area-inset-top));
-  background: #000;
-}
-
-body {
+html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -69,7 +61,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 /* Controls overlay */
 .controls {
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  inset: 0;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -87,6 +79,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .top-bar {
   display: flex;
   align-items: center;
+  gap: 12px;
   padding: calc(12px + var(--safe-top)) 16px 40px;
   background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
 }
@@ -104,7 +97,6 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   flex-shrink: 0;
 }
 .top-bar__back:active { background: rgba(255,255,255,0.2); }
-.top-bar__back { margin-right: 12px; }
 .top-bar__back svg { width: 22px; height: 22px; fill: currentColor; }
 .top-bar__title {
   font-size: 14px;
@@ -120,8 +112,8 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 48px;
 }
-.center-controls .ctrl-btn { margin: 0 24px; }
 .ctrl-btn {
   width: 56px;
   height: 56px;
@@ -218,8 +210,8 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 }
 .bottom-buttons {
   display: flex;
+  gap: 8px;
 }
-.bottom-buttons .small-btn { margin-left: 8px; }
 .small-btn {
   width: 36px;
   height: 36px;
@@ -243,6 +235,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4px;
   font-size: 13px;
   font-weight: 700;
   color: #fff;
@@ -254,7 +247,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .seek-feedback.left { left: 20%; }
 .seek-feedback.right { right: 20%; }
 .seek-feedback.visible { opacity: 1; }
-.seek-feedback svg { width: 32px; height: 32px; fill: currentColor; margin-bottom: 4px; }
+.seek-feedback svg { width: 32px; height: 32px; fill: currentColor; }
 
 /* Resume bar */
 .resume-bar {
@@ -271,9 +264,10 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   padding: 14px 16px;
   display: none;
   align-items: center;
+  gap: 12px;
 }
 .resume-bar.visible { display: flex; }
-.resume-bar__text { flex: 1; font-size: 13px; font-weight: 500; margin-right: 12px; }
+.resume-bar__text { flex: 1; font-size: 13px; font-weight: 500; }
 .resume-bar__btn {
   padding: 8px 18px;
   border-radius: 8px;
@@ -283,28 +277,29 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   font-weight: 700;
   cursor: pointer;
 }
-.resume-bar__btn.yes { background: var(--coral); color: #fff; margin-right: 8px; }
+.resume-bar__btn.yes { background: var(--coral); color: #fff; }
 .resume-bar__btn.no { background: rgba(255,255,255,0.1); color: #fff; }
 
 /* Error overlay */
 .error-overlay {
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  inset: 0;
   z-index: 30;
   background: rgba(0,0,0,0.9);
   display: none;
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  gap: 12px;
   color: #F87171;
   font-size: 14px;
   font-weight: 600;
 }
 .error-overlay.visible { display: flex; }
-.error-overlay span { margin-bottom: 12px; }
 .error-overlay a {
   color: rgba(255,255,255,0.6);
   font-size: 13px;
+  margin-top: 8px;
 }
 
 /* Loading spinner on video */
@@ -330,9 +325,9 @@ body.tv-mode .top-bar { display: none; }
 body.tv-mode .bottom-buttons { display: none; }
 
 body.tv-mode .center-controls {
+  gap: 56px;
   margin: auto 0;
 }
-body.tv-mode .center-controls .ctrl-btn { margin: 0 28px; }
 body.tv-mode .ctrl-btn {
   width: 80px;
   height: 80px;
@@ -412,7 +407,7 @@ body.tv-mode .progress-thumb {
 /* Fullscreen start screen -- shown when fullscreen=1 to get user gesture */
 .start-screen {
   position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
+  inset: 0;
   z-index: 50;
   background: #000;
   display: none;
